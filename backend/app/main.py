@@ -16,6 +16,7 @@ from .middleware.logging_middleware import (
     RequestLoggingMiddleware,
     PerformanceLoggingMiddleware
 )
+from .services.metrics import PrometheusMetricsMiddleware, get_metrics_response
 from .logging_config import setup_logging, get_logger
 import os
 
@@ -77,6 +78,9 @@ app.add_middleware(
     PerformanceLoggingMiddleware,
     slow_request_threshold_ms=float(os.getenv('SLOW_REQUEST_THRESHOLD_MS', 1000))
 )
+
+# Prometheus Metrics (collect metrics for all requests)
+app.add_middleware(PrometheusMetricsMiddleware)
 
 # Request Logging (innermost - logs all requests)
 app.add_middleware(RequestLoggingMiddleware)
@@ -163,6 +167,20 @@ def liveness_check():
     """
     from app.services.health_check import health_check_service
     return health_check_service.get_liveness()
+
+
+@app.get("/metrics")
+def metrics():
+    """
+    Prometheus metrics endpoint
+
+    Exposes application, database, and business metrics in Prometheus format.
+    This endpoint is typically scraped by Prometheus server.
+
+    Returns:
+        Response with metrics in Prometheus text format
+    """
+    return get_metrics_response()
 
 
 if __name__ == "__main__":

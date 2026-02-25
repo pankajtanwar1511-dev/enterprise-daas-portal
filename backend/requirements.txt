@@ -18,6 +18,12 @@ python-dotenv==1.0.0
 # Email (for future notifications)
 email-validator==2.1.0
 
+# Phase 3: Observability & Monitoring
+structlog==24.1.0  # Structured logging
+sentry-sdk[fastapi]==1.40.0  # Error tracking and monitoring
+prometheus-client==0.19.0  # Prometheus metrics
+psutil==5.9.7  # System resource monitoring
+
 # Phase 3: Enterprise Integration
 httpx==0.26.0  # For webhook delivery and HTTP requests
 openpyxl==3.1.2  # Excel import/export
