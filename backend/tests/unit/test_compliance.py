@@ -353,8 +353,7 @@ def test_lifecycle_stage_compliance(db_session):
             environment="PROD",
             owner_id=user.id,
             lifecycle_stage=stage,
-            naming_compliant=True,
-            lifecycle_stage="Active"
+            naming_compliant=True
         )
         db_session.add(asset)
 
@@ -363,7 +362,7 @@ def test_lifecycle_stage_compliance(db_session):
     # Query by lifecycle stage
     active_assets = db_session.query(Asset).filter(Asset.lifecycle_stage == "Active").count()
 
-    assert active_assets == len(valid_stages)  # All set to Active in the loop
+    assert active_assets == 1  # Only one asset has lifecycle_stage == "Active"
 
 
 def test_environment_validation(db_session):

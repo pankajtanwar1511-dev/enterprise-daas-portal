@@ -122,7 +122,9 @@ class Task(Base):
     assignee = relationship("User", foreign_keys=[assigned_to], backref="assigned_tasks")
     creator = relationship("User", foreign_keys=[created_by], backref="created_tasks")
     initiative = relationship("StrategicInitiative", backref="tasks")
-    comments = relationship("Comment", back_populates="task", cascade="all, delete-orphan")
+    comments = relationship("Comment",
+                          primaryjoin="and_(Task.task_id==foreign(Comment.entity_id), Comment.entity_type=='task')",
+                          viewonly=True)
 
     def to_dict(self):
         """Convert task to dictionary"""
@@ -270,12 +272,12 @@ class Comment(Base):
                         primaryjoin="and_(Comment.entity_type=='asset', foreign(Comment.entity_id)==Asset.asset_id)",
                         uselist=False, viewonly=True)
     change_request = relationship("ChangeRequest", foreign_keys="Comment.entity_id",
-                                 primaryjoin="and_(Comment.entity_type=='change_request', foreign(Comment.entity_id)==ChangeRequest.request_id)",
+                                 primaryjoin="and_(Comment.entity_type=='change_request', foreign(Comment.entity_id)==ChangeRequest.change_id)",
                                  uselist=False, viewonly=True)
     initiative = relationship("StrategicInitiative", foreign_keys="Comment.entity_id",
                             primaryjoin="and_(Comment.entity_type=='initiative', foreign(Comment.entity_id)==StrategicInitiative.initiative_id)",
                             uselist=False, viewonly=True)
-    task = relationship("Task", foreign_keys="Comment.entity_id", back_populates="comments",
+    task = relationship("Task", foreign_keys="Comment.entity_id",
                        primaryjoin="and_(Comment.entity_type=='task', foreign(Comment.entity_id)==Task.task_id)",
                        uselist=False, viewonly=True)
 

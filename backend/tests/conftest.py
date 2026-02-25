@@ -1,7 +1,26 @@
 """
 Pytest configuration and fixtures
 """
+# Unregister conflicting ROS pytest plugins before pytest loads them
+import sys
 import pytest
+
+# Block ROS pytest plugins from loading
+pytest_plugins_to_block = [
+    'launch_testing_ros_pytest_entrypoint',
+    'rostest',
+    'launch_testing',
+    'ament_copyright',
+    'ament_flake8',
+    'ament_lint',
+    'ament_pep257',
+    'ament_xmllint',
+]
+
+for plugin in pytest_plugins_to_block:
+    if plugin in sys.modules:
+        del sys.modules[plugin]
+
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker

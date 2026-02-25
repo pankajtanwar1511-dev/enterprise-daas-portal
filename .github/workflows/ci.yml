@@ -57,6 +57,7 @@ jobs:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
           SECRET_KEY: test-secret-key-for-ci-only-not-production
           RATE_LIMIT_ENABLED: 'false'
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: '1'
 
       - name: Run integration tests
         run: |
@@ -66,6 +67,7 @@ jobs:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
           SECRET_KEY: test-secret-key-for-ci-only-not-production
           RATE_LIMIT_ENABLED: 'false'
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: '1'
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
@@ -80,6 +82,8 @@ jobs:
         run: |
           cd backend
           pytest tests/ --cov=app --cov-report=html
+        env:
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: '1'
 
       - name: Upload coverage HTML report
         if: always()
