@@ -1,0 +1,89 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: daas-postgres
+    environment:
+      POSTGRES_DB: governance_portal
+      POSTGRES_USER: daas_admin
+      POSTGRES_PASSWORD: daas_secure_password_2026
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U daas_admin -d governance_portal"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - daas-network
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: daas-backend
+    environment:
+      DATABASE_URL: postgresql://daas_admin:daas_secure_password_2026@postgres:5432/governance_portal
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-in-production}
+      ALLOWED_ORIGINS: http://localhost:3000,http://localhost:5173,http://localhost
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    command: >
+      sh -c "
+        echo 'Waiting for database...';
+        sleep 5;
+        echo 'Running migrations...';
+        alembic upgrade head;
+        echo 'Starting server...';
+        uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      "
+    networks:
+      - daas-network
+    restart: unless-stopped
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: daas-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - daas-network
+    restart: unless-stopped
+
+  # Redis Cache (optional - for future use)
+  redis:
+    image: redis:7-alpine
+    container_name: daas-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - daas-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  daas-network:
+    driver: bridge
