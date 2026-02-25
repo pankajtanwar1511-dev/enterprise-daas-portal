@@ -40,7 +40,8 @@ def db_session():
     hr_domain = Domain(domain_code="HR", domain_name="Human Resources")
     fin_domain = Domain(domain_code="FIN", domain_name="Finance")
     it_domain = Domain(domain_code="IT", domain_name="Information Technology")
-    session.add_all([hr_domain, fin_domain, it_domain])
+    sales_domain = Domain(domain_code="SALES", domain_name="Sales")
+    session.add_all([hr_domain, fin_domain, it_domain, sales_domain])
     session.commit()
 
     yield session
@@ -178,6 +179,7 @@ def test_compliance_metrics_calculation(db_session):
         domain_id=domain.domain_id,
         environment="PROD",
         owner_id=user.user_id,
+        version="v1",
         naming_compliant=True,
         created_by=user.user_id,
         lifecycle_stage="Active"
@@ -188,6 +190,7 @@ def test_compliance_metrics_calculation(db_session):
         domain_id=domain.domain_id,
         environment="PROD",
         owner_id=user.user_id,
+        version="v1",
         naming_compliant=True,
         created_by=user.user_id,
         lifecycle_stage="Active"
@@ -198,6 +201,7 @@ def test_compliance_metrics_calculation(db_session):
         domain_id=domain.domain_id,
         environment="PROD",
         owner_id=user.user_id,
+        version="v1",
         naming_compliant=False,
         lifecycle_stage="Active",
         created_by=user.user_id
@@ -226,8 +230,8 @@ def test_compliance_metric_storage(db_session):
         total_assets=100,
         compliant_assets=85,
         compliance_rate=85.0,
-        non_compliant_assets=15,
         missing_documentation=10,
+        version_conflicts=15,
         pending_changes=5
     )
 
@@ -236,8 +240,8 @@ def test_compliance_metric_storage(db_session):
         total_assets=105,
         compliant_assets=95,
         compliance_rate=90.48,
-        non_compliant_assets=10,
         missing_documentation=5,
+        version_conflicts=10,
         pending_changes=3
     )
 
@@ -264,6 +268,7 @@ def test_violation_resolution(db_session):
         domain_id=domain.domain_id,
         environment="DEV",
         owner_id=user.user_id,
+        version="v1",
         naming_compliant=False,
         lifecycle_stage="Active",
         created_by=user.user_id
@@ -308,6 +313,7 @@ def test_missing_documentation_detection(db_session):
         domain_id=domain.domain_id,
         environment="PROD",
         owner_id=user.user_id,
+        version="v1",
         documentation_url="https://docs.example.com/hr-dw",
         created_by=user.user_id,
         lifecycle_stage="Active"
@@ -319,6 +325,7 @@ def test_missing_documentation_detection(db_session):
         domain_id=domain.domain_id,
         environment="PROD",
         owner_id=user.user_id,
+        version="v1",
         documentation_url=None,
         created_by=user.user_id,
         lifecycle_stage="Active"
@@ -347,6 +354,7 @@ def test_lifecycle_stage_compliance(db_session):
             domain_id=domain.domain_id,
             environment="PROD",
             owner_id=user.user_id,
+            version="v1",
             lifecycle_stage=stage,
             naming_compliant=True,
             created_by=user.user_id
@@ -373,6 +381,7 @@ def test_environment_validation(db_session):
             domain_id=domain.domain_id,
             environment=env,
             owner_id=user.user_id,
+            version="v1",
             naming_compliant=True,
             lifecycle_stage="Active",
             created_by=user.user_id
