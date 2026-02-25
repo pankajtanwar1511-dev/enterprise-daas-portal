@@ -1,0 +1,42 @@
+Generic single-database configuration for Enterprise DaaS Governance Portal.
+
+## Create a new migration
+
+After modifying models in app/models.py or app/models_extended.py:
+
+```bash
+cd backend
+alembic revision --autogenerate -m "description of changes"
+```
+
+## Apply migrations
+
+```bash
+alembic upgrade head
+```
+
+## Rollback migrations
+
+```bash
+# Rollback one version
+alembic downgrade -1
+
+# Rollback to specific version
+alembic downgrade <revision_id>
+```
+
+## View migration history
+
+```bash
+alembic history
+alembic current
+```
+
+## Initial setup
+
+The initial migration should be created after all models are defined:
+
+```bash
+alembic revision --autogenerate -m "initial schema"
+alembic upgrade head
+```
