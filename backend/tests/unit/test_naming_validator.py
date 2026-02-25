@@ -17,13 +17,13 @@ class TestNamingValidatorFormat:
         assert is_valid is True
         assert len(violations) == 0
 
-    def test_valid_naming_convention_with_longer_system(self, db, test_domain):
-        """Test valid naming convention with longer system name"""
-        asset_name = "PROD-TEST-DATAWAREHOUSE-v1"
+    def test_invalid_naming_convention_system_too_long(self, db, test_domain):
+        """Test invalid naming convention - system name too long (>10 chars)"""
+        asset_name = "PROD-TEST-DATAWAREHOUSE-v1"  # DATAWAREHOUSE = 13 chars, max is 10
         is_valid, violations = NamingValidator.validate(asset_name, db)
 
-        assert is_valid is True
-        assert len(violations) == 0
+        assert is_valid is False
+        assert any("character" in v.lower() for v in violations)
 
     def test_valid_naming_convention_with_version_minor(self, db, test_domain):
         """Test valid naming convention with minor version"""
@@ -51,12 +51,12 @@ class TestNamingValidatorFormat:
         assert len(violations) > 0
 
     def test_invalid_lowercase(self, db, test_domain):
-        """Test invalid naming convention - lowercase"""
+        """Test invalid naming convention - lowercase environment"""
         asset_name = "prod-test-sys-v1"
         is_valid, violations = NamingValidator.validate(asset_name, db)
 
         assert is_valid is False
-        assert any("uppercase" in v.lower() for v in violations)
+        assert any("environment" in v.lower() for v in violations)
 
     def test_invalid_wrong_separator(self, db, test_domain):
         """Test invalid naming convention - wrong separator"""
@@ -154,12 +154,13 @@ class TestVersionValidation:
 
         assert is_valid is True
 
-    def test_valid_version_major_minor_patch(self, db, test_domain):
-        """Test valid version with major.minor.patch"""
+    def test_invalid_version_major_minor_patch(self, db, test_domain):
+        """Test invalid version with major.minor.patch (not supported)"""
         asset_name = "PROD-TEST-SYS-v1.2.3"
         is_valid, violations = NamingValidator.validate(asset_name, db)
 
-        assert is_valid is True
+        assert is_valid is False
+        assert any("version" in v.lower() for v in violations)
 
     def test_invalid_version_missing_v_prefix(self, db, test_domain):
         """Test invalid version missing 'v' prefix"""
