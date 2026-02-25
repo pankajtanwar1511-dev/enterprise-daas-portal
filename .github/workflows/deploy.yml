@@ -1,0 +1,275 @@
+name: Deploy to Environments
+
+on:
+  push:
+    branches:
+      - main  # Deploy to production
+      - develop  # Deploy to staging
+  workflow_dispatch:  # Manual deployment
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Job 1: Build and Push Docker Images
+  build-and-push:
+    name: Build & Push Docker Images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      backend_tag: ${{ steps.meta-backend.outputs.tags }}
+      frontend_tag: ${{ steps.meta-frontend.outputs.tags }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract backend metadata
+        id: meta-backend
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=semver,pattern={{version}}
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ steps.meta-backend.outputs.tags }}
+          labels: ${{ steps.meta-backend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Extract frontend metadata
+        id: meta-frontend
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=semver,pattern={{version}}
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./frontend
+          push: true
+          tags: ${{ steps.meta-frontend.outputs.tags }}
+          labels: ${{ steps.meta-frontend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Job 2: Deploy to Staging (develop branch)
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.ref == 'refs/heads/develop' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+    environment:
+      name: staging
+      url: https://staging.daas-portal.example.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy notification
+        run: |
+          echo "🚀 Deploying to STAGING environment"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
+
+      # Example deployment steps (customize based on your infrastructure)
+      # Uncomment and modify based on your deployment target:
+
+      # For AWS ECS:
+      # - name: Configure AWS credentials
+      #   uses: aws-actions/configure-aws-credentials@v2
+      #   with:
+      #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #     aws-region: us-east-1
+      #
+      # - name: Deploy to ECS
+      #   run: |
+      #     aws ecs update-service \
+      #       --cluster staging-cluster \
+      #       --service daas-portal-backend \
+      #       --force-new-deployment
+
+      # For Kubernetes:
+      # - name: Set up kubectl
+      #   uses: azure/setup-kubectl@v3
+      #
+      # - name: Deploy to Kubernetes
+      #   run: |
+      #     kubectl set image deployment/backend \
+      #       backend=${{ needs.build-and-push.outputs.backend_tag }} \
+      #       -n staging
+
+      # For Docker Compose on VM:
+      # - name: Deploy via SSH
+      #   uses: appleboy/ssh-action@master
+      #   with:
+      #     host: ${{ secrets.STAGING_HOST }}
+      #     username: ${{ secrets.STAGING_USER }}
+      #     key: ${{ secrets.STAGING_SSH_KEY }}
+      #     script: |
+      #       cd /app/daas-portal
+      #       docker-compose pull
+      #       docker-compose up -d
+
+      - name: Deployment complete
+        run: |
+          echo "✅ Staging deployment complete!"
+          echo "URL: https://staging.daas-portal.example.com"
+
+  # Job 3: Deploy to Production (main branch)
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
+    environment:
+      name: production
+      url: https://daas-portal.example.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Pre-deployment checks
+        run: |
+          echo "🔍 Running pre-deployment checks..."
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
+
+      # Add manual approval step (GitHub Environments feature)
+      # This is configured in repository settings under Environments
+
+      - name: Deploy notification
+        run: |
+          echo "🚀 Deploying to PRODUCTION environment"
+
+      # Example deployment steps (customize based on your infrastructure)
+      # Similar to staging but pointing to production resources
+
+      # For Blue-Green deployment:
+      # - name: Deploy to blue environment
+      #   run: |
+      #     # Deploy to blue
+      #
+      # - name: Run smoke tests
+      #   run: |
+      #     # Test blue environment
+      #
+      # - name: Switch traffic to blue
+      #   run: |
+      #     # Update load balancer
+
+      - name: Run database migrations
+        run: |
+          echo "Running database migrations..."
+          # kubectl exec deployment/backend -- alembic upgrade head
+          # OR
+          # SSH to server and run migrations
+
+      - name: Deployment complete
+        run: |
+          echo "✅ Production deployment complete!"
+          echo "URL: https://daas-portal.example.com"
+
+      - name: Post-deployment health check
+        run: |
+          echo "🏥 Running health checks..."
+          # curl -f https://daas-portal.example.com/api/v1/health || exit 1
+
+  # Job 4: Smoke Tests
+  smoke-tests:
+    name: Smoke Tests
+    runs-on: ubuntu-latest
+    needs: [deploy-staging]
+    if: always() && needs.deploy-staging.result == 'success'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run smoke tests
+        run: |
+          echo "🧪 Running smoke tests against staging..."
+
+          # Example smoke tests
+          # curl -f https://staging.daas-portal.example.com/api/v1/health || exit 1
+          # curl -f https://staging.daas-portal.example.com/ || exit 1
+
+          echo "✅ Smoke tests passed!"
+
+  # Job 5: Rollback (manual trigger)
+  rollback:
+    name: Rollback Deployment
+    runs-on: ubuntu-latest
+    if: failure()
+
+    steps:
+      - name: Rollback notification
+        run: |
+          echo "⚠️ Deployment failed! Manual rollback may be required."
+          echo "Check the logs and roll back if necessary."
+
+      # Add rollback logic here
+      # - name: Rollback to previous version
+      #   run: |
+      #     # Rollback commands
+
+  # Job 6: Deployment Summary
+  deployment-summary:
+    name: Deployment Summary
+    runs-on: ubuntu-latest
+    needs: [deploy-staging, deploy-production]
+    if: always()
+
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Staging:** ${{ needs.deploy-staging.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Production:** ${{ needs.deploy-production.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Deployment completed at $(date)" >> $GITHUB_STEP_SUMMARY
+
+      - name: Notify team
+        if: failure()
+        run: |
+          echo "❌ Deployment failed! Please check the logs."
+          # Add notification logic (Slack, email, etc.)
