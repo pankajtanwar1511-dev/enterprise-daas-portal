@@ -12,7 +12,23 @@ from .middleware.security import (
     SecurityHeadersMiddleware,
     CSRFProtectionMiddleware
 )
+from .middleware.logging_middleware import (
+    RequestLoggingMiddleware,
+    PerformanceLoggingMiddleware
+)
+from .logging_config import setup_logging, get_logger
 import os
+
+# Configure structured logging
+setup_logging(
+    log_level=os.getenv("LOG_LEVEL", "INFO"),
+    enable_sentry=os.getenv("ENABLE_SENTRY", "false").lower() == "true",
+    sentry_dsn=os.getenv("SENTRY_DSN"),
+    environment=os.getenv("ENVIRONMENT", "development")
+)
+
+# Get logger
+logger = get_logger(__name__)
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -40,19 +56,38 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Security Middleware (added in reverse order - last added executes first)
+# Middleware Stack (added in reverse order - last added executes first)
+# Order: Logging → Performance → Security → CSRF → Rate Limiting
+
+# Rate Limiting (outermost - first to check)
+if os.getenv('RATE_LIMIT_ENABLED', 'True').lower() == 'true':
+    app.add_middleware(
+        RateLimitMiddleware,
+        requests_per_minute=int(os.getenv('RATE_LIMIT_PER_MINUTE', 60))
+    )
+
 # CSRF Protection
 app.add_middleware(CSRFProtectionMiddleware)
 
 # Security Headers
 app.add_middleware(SecurityHeadersMiddleware)
 
-# Rate Limiting (optional - can be disabled via env var)
-if os.getenv('RATE_LIMIT_ENABLED', 'True').lower() == 'true':
-    app.add_middleware(
-        RateLimitMiddleware,
-        requests_per_minute=int(os.getenv('RATE_LIMIT_PER_MINUTE', 60))
-    )
+# Performance Logging (track slow endpoints)
+app.add_middleware(
+    PerformanceLoggingMiddleware,
+    slow_request_threshold_ms=float(os.getenv('SLOW_REQUEST_THRESHOLD_MS', 1000))
+)
+
+# Request Logging (innermost - logs all requests)
+app.add_middleware(RequestLoggingMiddleware)
+
+logger.info(
+    "application_startup",
+    version="2.0.0",
+    environment=os.getenv("ENVIRONMENT", "development"),
+    cors_origins=allowed_origins,
+    rate_limiting_enabled=os.getenv('RATE_LIMIT_ENABLED', 'True').lower() == 'true'
+)
 
 # Include routers
 app.include_router(auth.router)  # Auth must be first for proper routing
