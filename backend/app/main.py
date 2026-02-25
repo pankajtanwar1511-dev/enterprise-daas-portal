@@ -7,6 +7,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
 from .api import assets, compliance, strategy, vendors, reports, auth, impact, lineage, schemas, quality, policies, sla, events, webhooks, api_keys, audit_logs, change_requests
 from . import models, models_extended, models_advanced, models_integrations
+from .middleware.security import (
+    RateLimitMiddleware,
+    SecurityHeadersMiddleware,
+    CSRFProtectionMiddleware
+)
+import os
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -21,13 +27,32 @@ app = FastAPI(
 )
 
 # Configure CORS
+allowed_origins = os.getenv(
+    "ALLOWED_ORIGINS",
+    "http://localhost:3000,http://localhost:3001,http://localhost:5173"
+).split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://localhost:5173"],  # React dev servers
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Security Middleware (added in reverse order - last added executes first)
+# CSRF Protection
+app.add_middleware(CSRFProtectionMiddleware)
+
+# Security Headers
+app.add_middleware(SecurityHeadersMiddleware)
+
+# Rate Limiting (optional - can be disabled via env var)
+if os.getenv('RATE_LIMIT_ENABLED', 'True').lower() == 'true':
+    app.add_middleware(
+        RateLimitMiddleware,
+        requests_per_minute=int(os.getenv('RATE_LIMIT_PER_MINUTE', 60))
+    )
 
 # Include routers
 app.include_router(auth.router)  # Auth must be first for proper routing
