@@ -77,7 +77,7 @@ def test_user(db):
     role = models.Role(
         role_name="Admin",
         description="Administrator",
-        permissions={"all": True}
+        permissions="{}"
     )
     db.add(role)
     db.flush()

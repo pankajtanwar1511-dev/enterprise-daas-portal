@@ -21,8 +21,8 @@ def db_session():
     session = SessionLocal()
 
     # Create test roles
-    admin_role = Role(name="Admin")
-    viewer_role = Role(name="Viewer")
+    admin_role = Role(role_name="Admin", description="Administrator", permissions="{}")
+    viewer_role = Role(role_name="Viewer", description="Viewer", permissions="{}")
     session.add_all([admin_role, viewer_role])
     session.commit()
 
@@ -30,8 +30,8 @@ def db_session():
     user = User(
         username="test_user",
         email="test@example.com",
-        hashed_password="hashed",
-        role_id=admin_role.id
+        password_hash="hashed",
+        role_id=admin_role.role_id
     )
     session.add(user)
     session.commit()
@@ -48,10 +48,8 @@ def db_session():
     session.close()
 
 
-def test_naming_validator_valid_names():
+def test_naming_validator_valid_names(db_session):
     """Test naming validator accepts valid asset names"""
-    validator = NamingValidator()
-
     valid_names = [
         "PROD-HR-DW-v1",
         "DEV-FIN-ETL-v2.1",
@@ -60,15 +58,13 @@ def test_naming_validator_valid_names():
     ]
 
     for name in valid_names:
-        result = validator.validate(name)
-        assert result["valid"] is True, f"Name {name} should be valid"
-        assert "errors" not in result or len(result["errors"]) == 0
+        is_valid, errors = NamingValidator.validate(name, db_session)
+        assert is_valid is True, f"Name {name} should be valid"
+        assert len(errors) == 0
 
 
-def test_naming_validator_invalid_names():
+def test_naming_validator_invalid_names(db_session):
     """Test naming validator rejects invalid asset names"""
-    validator = NamingValidator()
-
     invalid_names = [
         "prod-hr-dw-v1",  # lowercase
         "PROD-INVALID-DW-v1",  # invalid domain
@@ -79,10 +75,9 @@ def test_naming_validator_invalid_names():
     ]
 
     for name in invalid_names:
-        result = validator.validate(name)
-        assert result["valid"] is False, f"Name {name} should be invalid"
-        assert "errors" in result
-        assert len(result["errors"]) > 0
+        is_valid, errors = NamingValidator.validate(name, db_session)
+        assert is_valid is False, f"Name {name} should be invalid"
+        assert len(errors) > 0
 
 
 def test_create_compliant_asset(db_session):
@@ -92,24 +87,24 @@ def test_create_compliant_asset(db_session):
 
     asset = Asset(
         asset_name="PROD-HR-DW-v1",
-        domain_id=domain.id,
+        domain_id=domain.domain_id,
         environment="PROD",
-        owner_id=user.id,
+        owner_id=user.user_id,
         version="v1",
         lifecycle_stage="Active",
         documentation_url="https://docs.example.com",
         description="HR Data Warehouse",
         business_justification="HR data analytics",
         naming_compliant=True,
-        has_documentation=True
+        created_by=user.user_id
     )
 
     db_session.add(asset)
     db_session.commit()
 
-    assert asset.id is not None
+    assert asset.asset_id is not None
     assert asset.naming_compliant is True
-    assert asset.has_documentation is True
+    assert asset.documentation_url is not None
 
 
 def test_create_noncompliant_asset(db_session):
@@ -119,21 +114,21 @@ def test_create_noncompliant_asset(db_session):
 
     asset = Asset(
         asset_name="finance-warehouse",  # Non-compliant name
-        domain_id=domain.id,
+        domain_id=domain.domain_id,
         environment="PROD",
-        owner_id=user.id,
+        owner_id=user.user_id,
         version="v1",
         lifecycle_stage="Active",
         naming_compliant=False,
-        has_documentation=False  # Missing documentation
+        created_by=user.user_id
     )
 
     db_session.add(asset)
     db_session.commit()
 
-    assert asset.id is not None
+    assert asset.asset_id is not None
     assert asset.naming_compliant is False
-    assert asset.has_documentation is False
+    assert asset.documentation_url is None
 
 
 def test_compliance_violation_tracking(db_session):
@@ -144,32 +139,32 @@ def test_compliance_violation_tracking(db_session):
     # Create non-compliant asset
     asset = Asset(
         asset_name="it-api-service",
-        domain_id=domain.id,
+        domain_id=domain.domain_id,
         environment="DEV",
-        owner_id=user.id,
+        owner_id=user.user_id,
         version="v1",
         lifecycle_stage="Active",
-        naming_compliant=False
+        naming_compliant=False,
+        created_by=user.user_id
     )
     db_session.add(asset)
     db_session.commit()
 
     # Create violation record
     violation = ComplianceViolation(
-        asset_id=asset.id,
+        asset_id=asset.asset_id,
         violation_type="naming_convention",
-        severity="medium",
+        severity="Medium",
         description="Asset name does not follow ENV-DOMAIN-SYSTEM-VERSION format",
-        detected_at=datetime.utcnow(),
-        status="open"
+        detected_at=datetime.utcnow()
     )
     db_session.add(violation)
     db_session.commit()
 
-    assert violation.id is not None
-    assert violation.asset_id == asset.id
-    assert violation.status == "open"
-    assert violation.severity == "medium"
+    assert violation.violation_id is not None
+    assert violation.asset_id == asset.asset_id
+    assert violation.resolved_at is None
+    assert violation.severity == "Medium"
 
 
 def test_compliance_metrics_calculation(db_session):
@@ -180,32 +175,32 @@ def test_compliance_metrics_calculation(db_session):
     # Create mix of compliant and non-compliant assets
     compliant_asset1 = Asset(
         asset_name="PROD-HR-DW-v1",
-        domain_id=domain.id,
+        domain_id=domain.domain_id,
         environment="PROD",
-        owner_id=user.id,
+        owner_id=user.user_id,
         naming_compliant=True,
-        has_documentation=True,
+        created_by=user.user_id,
         lifecycle_stage="Active"
     )
 
     compliant_asset2 = Asset(
         asset_name="PROD-HR-ETL-v1",
-        domain_id=domain.id,
+        domain_id=domain.domain_id,
         environment="PROD",
-        owner_id=user.id,
+        owner_id=user.user_id,
         naming_compliant=True,
-        has_documentation=True,
+        created_by=user.user_id,
         lifecycle_stage="Active"
     )
 
     noncompliant_asset = Asset(
         asset_name="hr-api",
-        domain_id=domain.id,
+        domain_id=domain.domain_id,
         environment="PROD",
-        owner_id=user.id,
+        owner_id=user.user_id,
         naming_compliant=False,
-        has_documentation=False,
-        lifecycle_stage="Active"
+        lifecycle_stage="Active",
+        created_by=user.user_id
     )
 
     db_session.add_all([compliant_asset1, compliant_asset2, noncompliant_asset])
@@ -266,23 +261,23 @@ def test_violation_resolution(db_session):
 
     asset = Asset(
         asset_name="invalid-name",
-        domain_id=domain.id,
+        domain_id=domain.domain_id,
         environment="DEV",
-        owner_id=user.id,
+        owner_id=user.user_id,
         naming_compliant=False,
-        lifecycle_stage="Active"
+        lifecycle_stage="Active",
+        created_by=user.user_id
     )
     db_session.add(asset)
     db_session.commit()
 
     # Create violation
     violation = ComplianceViolation(
-        asset_id=asset.id,
+        asset_id=asset.asset_id,
         violation_type="naming_convention",
-        severity="high",
+        severity="High",
         description="Invalid naming format",
-        detected_at=datetime.utcnow(),
-        status="open"
+        detected_at=datetime.utcnow()
     )
     db_session.add(violation)
     db_session.commit()
@@ -291,15 +286,15 @@ def test_violation_resolution(db_session):
     asset.asset_name = "DEV-HR-API-v1"
     asset.naming_compliant = True
 
-    violation.status = "resolved"
     violation.resolved_at = datetime.utcnow()
+    violation.resolved_by = user.user_id
     violation.resolution_notes = "Asset renamed to comply with naming convention"
 
     db_session.commit()
 
     assert asset.naming_compliant is True
-    assert violation.status == "resolved"
     assert violation.resolved_at is not None
+    assert violation.resolved_by == user.user_id
 
 
 def test_missing_documentation_detection(db_session):
@@ -310,22 +305,22 @@ def test_missing_documentation_detection(db_session):
     # Asset with documentation
     with_docs = Asset(
         asset_name="PROD-HR-DW-v1",
-        domain_id=domain.id,
+        domain_id=domain.domain_id,
         environment="PROD",
-        owner_id=user.id,
+        owner_id=user.user_id,
         documentation_url="https://docs.example.com/hr-dw",
-        has_documentation=True,
+        created_by=user.user_id,
         lifecycle_stage="Active"
     )
 
     # Asset without documentation
     without_docs = Asset(
         asset_name="PROD-HR-API-v1",
-        domain_id=domain.id,
+        domain_id=domain.domain_id,
         environment="PROD",
-        owner_id=user.id,
+        owner_id=user.user_id,
         documentation_url=None,
-        has_documentation=False,
+        created_by=user.user_id,
         lifecycle_stage="Active"
     )
 
@@ -333,7 +328,7 @@ def test_missing_documentation_detection(db_session):
     db_session.commit()
 
     # Query assets missing documentation
-    missing_docs = db_session.query(Asset).filter(Asset.has_documentation == False).all()
+    missing_docs = db_session.query(Asset).filter(Asset.documentation_url == None).all()
 
     assert len(missing_docs) == 1
     assert missing_docs[0].asset_name == "PROD-HR-API-v1"
@@ -349,11 +344,12 @@ def test_lifecycle_stage_compliance(db_session):
     for stage in valid_stages:
         asset = Asset(
             asset_name=f"PROD-HR-{stage}-v1",
-            domain_id=domain.id,
+            domain_id=domain.domain_id,
             environment="PROD",
-            owner_id=user.id,
+            owner_id=user.user_id,
             lifecycle_stage=stage,
-            naming_compliant=True
+            naming_compliant=True,
+            created_by=user.user_id
         )
         db_session.add(asset)
 
@@ -374,11 +370,12 @@ def test_environment_validation(db_session):
     for env in valid_environments:
         asset = Asset(
             asset_name=f"{env}-HR-DW-v1",
-            domain_id=domain.id,
+            domain_id=domain.domain_id,
             environment=env,
-            owner_id=user.id,
+            owner_id=user.user_id,
             naming_compliant=True,
-            lifecycle_stage="Active"
+            lifecycle_stage="Active",
+            created_by=user.user_id
         )
         db_session.add(asset)
 
