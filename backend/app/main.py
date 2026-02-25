@@ -121,12 +121,48 @@ def root():
 
 @app.get("/api/v1/health")
 def health_check():
-    """Health check endpoint"""
-    return {
-        "status": "healthy",
-        "service": "governance-portal",
-        "version": "1.0.0"
-    }
+    """
+    Comprehensive health check endpoint
+
+    Returns detailed system health including:
+    - Database connectivity
+    - System resources (CPU, memory, disk)
+    - External dependencies (Redis, Sentry)
+    - Application uptime
+    """
+    from app.services.health_check import health_check_service
+    return health_check_service.get_comprehensive_health()
+
+
+@app.get("/api/v1/health/ready")
+def readiness_check():
+    """
+    Readiness probe for Kubernetes
+
+    Checks if application is ready to serve traffic.
+    Returns 200 if ready, 503 if not ready.
+    """
+    from app.services.health_check import health_check_service
+    from fastapi import Response
+
+    result = health_check_service.get_readiness()
+
+    if result["ready"]:
+        return result
+    else:
+        return Response(content=str(result), status_code=503)
+
+
+@app.get("/api/v1/health/live")
+def liveness_check():
+    """
+    Liveness probe for Kubernetes
+
+    Checks if application is alive.
+    Returns 200 if alive.
+    """
+    from app.services.health_check import health_check_service
+    return health_check_service.get_liveness()
 
 
 if __name__ == "__main__":
