@@ -5,8 +5,8 @@ FastAPI backend with governance controls, lifecycle management, and compliance t
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
-from .api import assets, compliance, strategy, vendors, reports, auth, impact, lineage, schemas, quality, policies, sla, events, webhooks, api_keys, audit_logs, change_requests
-from . import models, models_extended, models_advanced, models_integrations
+from .api import assets, compliance, strategy, vendors, reports, auth, impact, lineage, schemas, quality, policies, sla, events, webhooks, api_keys, audit_logs, change_requests, tasks, notifications, comments, activity
+from . import models, models_extended, models_advanced, models_integrations, models_collaboration, models_itsm
 from .middleware.security import (
     RateLimitMiddleware,
     SecurityHeadersMiddleware,
@@ -111,6 +111,10 @@ app.include_router(sla.router)  # Real-time SLA monitoring and metric collection
 app.include_router(events.router)  # Event version control and catalog management
 app.include_router(webhooks.router)  # Phase 3: Webhook management for event notifications
 app.include_router(api_keys.router)  # Phase 3: API key management for programmatic access
+app.include_router(tasks.router)  # Gap Feature: Task assignment and management
+app.include_router(notifications.router)  # Gap Feature: In-app notifications
+app.include_router(comments.router)  # Gap Feature: Comment system with threading
+app.include_router(activity.router)  # Gap Feature: Activity feed and audit trail
 
 
 @app.get("/")
