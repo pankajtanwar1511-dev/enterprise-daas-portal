@@ -195,11 +195,14 @@ def test_sanitize_string_basic():
     # Normal string
     assert sanitize_string("hello world") == "hello world"
 
-    # HTML entities
-    assert sanitize_string("<script>alert('xss')</script>") == "alert('xss')"
+    # HTML entities - should be escaped, not removed
+    result = sanitize_string("<script>alert('xss')</script>")
+    assert "&lt;script&gt;" in result
+    assert "&lt;/script&gt;" in result
 
-    # Special characters
-    assert sanitize_string("test<>test") == "testtest"
+    # Special characters - should be escaped
+    result = sanitize_string("test<>test")
+    assert "&lt;" in result and "&gt;" in result
 
 
 def test_sanitize_string_length():
@@ -228,10 +231,13 @@ def test_sanitize_dict_basic():
 
     sanitized = sanitize_dict(data)
 
-    assert "script" not in sanitized["name"]
+    # HTML should be escaped, not removed
+    assert "&lt;script&gt;" in sanitized["name"]
+    assert "&lt;/script&gt;" in sanitized["name"]
     assert sanitized["description"] == "Normal text"
     assert sanitized["count"] == 123
-    assert "b" not in sanitized["nested"]["value"]
+    assert "&lt;b&gt;" in sanitized["nested"]["value"]
+    assert "&lt;/b&gt;" in sanitized["nested"]["value"]
 
 
 def test_sanitize_dict_selective():
@@ -245,9 +251,14 @@ def test_sanitize_dict_selective():
     # Only sanitize name and description
     sanitized = sanitize_dict(data, fields_to_sanitize=["name", "description"])
 
-    assert "script" not in sanitized["name"]
-    assert "<div>" in sanitized["code"]  # Not sanitized
-    assert "b" not in sanitized["description"]
+    # Name should be escaped
+    assert "&lt;script&gt;" in sanitized["name"]
+    assert "&lt;/script&gt;" in sanitized["name"]
+    # Code should NOT be sanitized (not in fields_to_sanitize)
+    assert "<div>" in sanitized["code"]
+    # Description should be escaped
+    assert "&lt;b&gt;" in sanitized["description"]
+    assert "&lt;/b&gt;" in sanitized["description"]
 
 
 def test_sanitize_dict_list_values():
@@ -259,9 +270,12 @@ def test_sanitize_dict_list_values():
 
     sanitized = sanitize_dict(data)
 
-    assert "script" not in sanitized["tags"][0]
+    # HTML in list items should be escaped
+    assert "&lt;script&gt;" in sanitized["tags"][0]
+    assert "&lt;/script&gt;" in sanitized["tags"][0]
     assert sanitized["tags"][1] == "normal tag"
-    assert "b" not in sanitized["tags"][2]
+    assert "&lt;b&gt;" in sanitized["tags"][2]
+    assert "&lt;/b&gt;" in sanitized["tags"][2]
     assert sanitized["count"] == 5
 
 
