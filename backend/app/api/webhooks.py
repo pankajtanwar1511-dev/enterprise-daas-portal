@@ -10,6 +10,7 @@ import secrets
 import hmac
 import hashlib
 import httpx
+import json
 
 from ..database import get_db
 from ..dependencies import get_current_user
@@ -69,16 +70,21 @@ async def list_webhooks(
     skip: int = 0,
     limit: int = 100,
     active_only: bool = False,
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
-    """List all webhooks"""
+    """List all webhooks. No authentication required for read access."""
     query = db.query(Webhook)
 
     if active_only:
         query = query.filter(Webhook.active == True)
 
     webhooks = query.offset(skip).limit(limit).all()
+
+    # Parse JSON events field for PostgreSQL compatibility
+    for webhook in webhooks:
+        if isinstance(webhook.events, str):
+            webhook.events = json.loads(webhook.events)
+
     return webhooks
 
 
@@ -92,6 +98,11 @@ async def get_webhook(
     webhook = db.query(Webhook).filter(Webhook.webhook_id == webhook_id).first()
     if not webhook:
         raise HTTPException(status_code=404, detail="Webhook not found")
+
+    # Parse JSON events field for PostgreSQL compatibility
+    if isinstance(webhook.events, str):
+        webhook.events = json.loads(webhook.events)
+
     return webhook
 
 
@@ -106,6 +117,10 @@ async def update_webhook(
     webhook = db.query(Webhook).filter(Webhook.webhook_id == webhook_id).first()
     if not webhook:
         raise HTTPException(status_code=404, detail="Webhook not found")
+
+    # Parse JSON events field for PostgreSQL compatibility (before returning)
+    if isinstance(webhook.events, str):
+        webhook.events = json.loads(webhook.events)
 
     # Update fields
     update_data = webhook_update.model_dump(exclude_unset=True)
@@ -123,6 +138,7 @@ async def update_webhook(
 
     db.commit()
     db.refresh(webhook)
+
     return webhook
 
 

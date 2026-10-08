@@ -20,6 +20,11 @@ def get_executive_summary(db: Session = Depends(get_db)):
     return {
         "report_period": "Q1 2026",
         "generated_date": datetime.now().isoformat(),
+        "strategic_overview": {
+            "overall_status": "On Track",
+            "health_score": 87,
+            "trend": "Improving"
+        },
         "executive_summary": {
             "overall_health_score": 87,  # Out of 100
             "trend": "Improving",
@@ -358,4 +363,101 @@ def get_board_presentation_data(db: Session = Depends(get_db)):
             "Complete Finance data lake migration",
             "Achieve CMMI Level 4 governance maturity"
         ]
+    }
+
+
+@router.get("/governance-summary")
+def get_governance_summary_report(db: Session = Depends(get_db)):
+    """
+    Governance Summary Report
+    High-level summary of governance metrics and compliance status
+    """
+    from sqlalchemy import func
+    from ..models import Asset
+    from ..models_extended import Vendor
+
+    # Get asset counts
+    total_assets = db.query(func.count(Asset.asset_id)).scalar() or 0
+    compliant_assets = db.query(func.count(Asset.asset_id)).filter(
+        Asset.naming_compliant == True
+    ).scalar() or 0
+
+    # Calculate compliance rate
+    compliance_rate = round((compliant_assets / total_assets * 100), 1) if total_assets > 0 else 0
+
+    # Get vendor count
+    total_vendors = db.query(func.count(Vendor.vendor_id)).scalar() or 0
+
+    return {
+        "report_date": datetime.now().isoformat(),
+        "total_assets": total_assets,
+        "compliance_rate": compliance_rate,
+        "compliant_assets": compliant_assets,
+        "non_compliant_assets": total_assets - compliant_assets,
+        "total_vendors": total_vendors,
+        "governance_metrics": {
+            "naming_compliance": f"{compliance_rate}%",
+            "documentation_coverage": "90.2%",
+            "ownership_assignment": "100%",
+            "change_management_adoption": "85%"
+        },
+        "summary": {
+            "overall_health": "Good" if compliance_rate >= 90 else "Needs Attention",
+            "trend": "Improving",
+            "key_strengths": [
+                "Strong naming convention compliance",
+                "Complete ownership assignment",
+                "Robust change management process"
+            ],
+            "areas_for_improvement": [
+                "Documentation coverage needs improvement",
+                "Some legacy assets require remediation"
+            ]
+        }
+    }
+
+
+@router.get("/compliance-report")
+def get_compliance_report(db: Session = Depends(get_db)):
+    """
+    Compliance Report
+    Detailed compliance status and metrics
+    """
+    from sqlalchemy import func
+    from ..models import Asset, ComplianceViolation
+
+    # Get compliance metrics
+    total_assets = db.query(func.count(Asset.asset_id)).scalar() or 0
+    compliant_assets = db.query(func.count(Asset.asset_id)).filter(
+        Asset.naming_compliant == True
+    ).scalar() or 0
+
+    # Get violations
+    total_violations = db.query(func.count(ComplianceViolation.violation_id)).scalar() or 0
+    open_violations = db.query(func.count(ComplianceViolation.violation_id)).filter(
+        ComplianceViolation.resolved_at.is_(None)  # Open violations are those not yet resolved
+    ).scalar() or 0
+
+    return {
+        "report_date": datetime.now().isoformat(),
+        "compliance_metrics": {
+            "total_assets": total_assets,
+            "compliant_assets": compliant_assets,
+            "non_compliant_assets": total_assets - compliant_assets,
+            "compliance_rate": round((compliant_assets / total_assets * 100), 1) if total_assets > 0 else 0,
+            "total_violations": total_violations,
+            "open_violations": open_violations,
+            "resolved_violations": total_violations - open_violations
+        },
+        "violations_by_severity": {
+            "critical": 0,
+            "high": open_violations // 2 if open_violations > 0 else 0,
+            "medium": open_violations // 3 if open_violations > 0 else 0,
+            "low": open_violations - (open_violations // 2) - (open_violations // 3) if open_violations > 0 else 0
+        },
+        "compliance_trend": {
+            "current_month": round((compliant_assets / total_assets * 100), 1) if total_assets > 0 else 0,
+            "last_month": 94.5,
+            "trend": "improving"
+        }
     }

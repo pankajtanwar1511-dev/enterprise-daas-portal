@@ -122,9 +122,7 @@ class Task(Base):
     assignee = relationship("User", foreign_keys=[assigned_to], backref="assigned_tasks")
     creator = relationship("User", foreign_keys=[created_by], backref="created_tasks")
     initiative = relationship("StrategicInitiative", backref="tasks")
-    comments = relationship("Comment",
-                          primaryjoin="and_(Task.task_id==foreign(Comment.entity_id), Comment.entity_type=='task')",
-                          viewonly=True)
+    # Note: Comments can be accessed via Comment.query.filter(entity_type='task', entity_id=task_id)
 
     def to_dict(self):
         """Convert task to dictionary"""
@@ -148,12 +146,12 @@ class Task(Base):
             "assignee": {
                 "user_id": self.assignee.user_id,
                 "username": self.assignee.username,
-                "full_name": self.assignee.full_name
+                "full_name": f"{self.assignee.first_name} {self.assignee.last_name}".strip()
             } if self.assignee else None,
             "creator": {
                 "user_id": self.creator.user_id,
                 "username": self.creator.username,
-                "full_name": self.creator.full_name
+                "full_name": f"{self.creator.first_name} {self.creator.last_name}".strip()
             } if self.creator else None,
         }
 
@@ -298,7 +296,7 @@ class Comment(Base):
             "user": {
                 "user_id": self.user.user_id,
                 "username": self.user.username,
-                "full_name": self.user.full_name
+                "full_name": f"{self.user.first_name} {self.user.last_name}".strip()
             } if self.user else None,
         }
 
@@ -363,6 +361,6 @@ class ActivityLog(Base):
             "user": {
                 "user_id": self.user.user_id,
                 "username": self.user.username,
-                "full_name": self.user.full_name
+                "full_name": f"{self.user.first_name} {self.user.last_name}".strip()
             } if self.user else None,
         }

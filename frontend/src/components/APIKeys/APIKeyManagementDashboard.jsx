@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import axios from '../../utils/axiosInstance'
+import axiosInstance from '../../utils/axiosInstance'
 import {
   Box,
   Typography,
@@ -67,7 +67,7 @@ function APIKeyManagementDashboard() {
     setLoading(true)
     setError('')
     try {
-      const response = await axios.get('/api/v1/api-keys/')
+      const response = await axiosInstance.get('/api/v1/api-keys/')
       setApiKeys(response.data)
     } catch (err) {
       console.error('Error fetching API keys:', err)
@@ -80,7 +80,7 @@ function APIKeyManagementDashboard() {
   const handleCreateKey = async (e) => {
     e.preventDefault()
     try {
-      const response = await axios.post('/api/v1/api-keys/', formData)
+      const response = await axiosInstance.post('/api/v1/api-keys/', formData)
       setCreatedKeyData(response.data)
       setKeyCreatedDialogOpen(true)
       setCreateDialogOpen(false)
@@ -100,7 +100,7 @@ function APIKeyManagementDashboard() {
   const handleRevokeKey = async (keyId) => {
     if (!confirm('Are you sure you want to revoke this API key? This action cannot be undone.')) return
     try {
-      await axios.delete(`/api/v1/api-keys/${keyId}`)
+      await axiosInstance.delete(`/api/v1/api-keys/${keyId}`)
       fetchData()
     } catch (err) {
       console.error('Error revoking API key:', err)
@@ -113,7 +113,7 @@ function APIKeyManagementDashboard() {
       const endpoint = isActive
         ? `/api/v1/api-keys/${keyId}/deactivate`
         : `/api/v1/api-keys/${keyId}/activate`
-      await axios.patch(endpoint)
+      await axiosInstance.patch(endpoint)
       fetchData()
     } catch (err) {
       console.error('Error toggling API key:', err)

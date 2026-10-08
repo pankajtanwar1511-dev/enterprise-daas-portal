@@ -307,6 +307,8 @@ class SLAMonitor:
             "violation_id": v.violation_id,
             "metric_id": v.metric_id,
             "metric_name": v.metric.metric_name,
+            "metric_type": v.metric.metric_type.value,
+            "asset_id": v.metric.asset_id,
             "violated_at": v.violated_at.isoformat(),
             "resolved_at": v.resolved_at.isoformat() if v.resolved_at else None,
             "duration_minutes": v.duration_minutes,

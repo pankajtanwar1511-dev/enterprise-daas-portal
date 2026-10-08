@@ -33,6 +33,9 @@ import {
   Build as ToolsIcon,
   History as AuditIcon,
   Speed as SpeedIcon,
+  Groups as StakeholdersIcon,
+  AttachMoney as BudgetIcon,
+  Policy as PolicyIcon,
 } from '@mui/icons-material'
 
 import { useAuth } from './contexts/AuthContext'
@@ -59,6 +62,9 @@ import EventCatalogDashboard from './components/EventCatalog/EventCatalogDashboa
 import SchemaRegistryDashboard from './components/SchemaRegistry/SchemaRegistryDashboard'
 import IntegrationLogsDashboard from './components/IntegrationLogs/IntegrationLogsDashboard'
 import BulkImportDashboard from './components/BulkImport/BulkImportDashboard'
+import StakeholdersManagement from './components/StakeholdersManagement/StakeholdersManagement'
+import BudgetDashboard from './components/BudgetDashboard/BudgetDashboard'
+import GovernancePolicies from './components/GovernancePolicies/GovernancePolicies'
 
 const drawerWidth = 240
 
@@ -68,6 +74,9 @@ const menuSections = [
     items: [
       { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
       { text: 'DaaS Strategy', icon: <StrategyIcon />, path: '/strategy' },
+      { text: 'Stakeholders', icon: <StakeholdersIcon />, path: '/stakeholders' },
+      { text: 'Budget Dashboard', icon: <BudgetIcon />, path: '/budget' },
+      { text: 'Governance Policies', icon: <PolicyIcon />, path: '/governance' },
       { text: 'Vendor & Budget', icon: <VendorIcon />, path: '/vendors' },
       { text: 'Management Reports', icon: <ReportsIcon />, path: '/reports' },
       { text: 'Asset Registry', icon: <AssetsIcon />, path: '/assets' },
@@ -98,7 +107,7 @@ const menuSections = [
 
 function App() {
   const location = useLocation()
-  const { user, logout, isAuthenticated } = useAuth()
+  const { user, logout, isAuthenticated, loading } = useAuth()
   const [anchorEl, setAnchorEl] = useState(null)
 
   const handleMenuOpen = (event) => {
@@ -112,6 +121,27 @@ function App() {
   const handleLogout = () => {
     logout()
     handleMenuClose()
+  }
+
+  // Show loading screen while checking authentication
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '100vh',
+          backgroundColor: '#F5F5F5',
+        }}
+      >
+        <Box sx={{ textAlign: 'center' }}>
+          <Typography variant="h5" gutterBottom>
+            Loading...
+          </Typography>
+        </Box>
+      </Box>
+    )
   }
 
   // If on login page, render only login component
@@ -433,6 +463,30 @@ function App() {
               element={
                 <ProtectedRoute requireAnyRole={['Admin', 'DataSteward']}>
                   <BulkImportDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/stakeholders"
+              element={
+                <ProtectedRoute requireAnyRole={['Admin', 'DataSteward', 'AssetOwner']}>
+                  <StakeholdersManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/budget"
+              element={
+                <ProtectedRoute requireAnyRole={['Admin', 'DataSteward']}>
+                  <BudgetDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/governance"
+              element={
+                <ProtectedRoute requireAnyRole={['Admin', 'DataSteward']}>
+                  <GovernancePolicies />
                 </ProtectedRoute>
               }
             />

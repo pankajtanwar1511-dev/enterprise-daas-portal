@@ -37,9 +37,8 @@ import {
   ArrowForward as ArrowForwardIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import axiosInstance from '../../utils/axiosInstance';
 
-const API_BASE_URL = 'http://localhost:8000';
 
 const TeamDashboard = () => {
   const navigate = useNavigate();
@@ -68,9 +67,6 @@ const TeamDashboard = () => {
     setError(null);
 
     try {
-      const token = localStorage.getItem('token');
-      const headers = { 'Authorization': `Bearer ${token}` };
-
       // Fetch data in parallel
       const [
         tasksResponse,
@@ -79,11 +75,11 @@ const TeamDashboard = () => {
         notificationsResponse,
         notificationCountResponse
       ] = await Promise.all([
-        axios.get(`${API_BASE_URL}/api/v1/tasks?limit=10`, { headers }),
-        axios.get(`${API_BASE_URL}/api/v1/change-requests?status=PendingApproval&limit=5`, { headers }),
-        axios.get(`${API_BASE_URL}/api/v1/activity?limit=10`, { headers }),
-        axios.get(`${API_BASE_URL}/api/v1/notifications?limit=5`, { headers }),
-        axios.get(`${API_BASE_URL}/api/v1/notifications/unread-count`, { headers })
+        axiosInstance.get(`/api/v1/tasks?limit=10`),
+        axiosInstance.get(`/api/v1/change-requests?status=PendingApproval&limit=5`),
+        axiosInstance.get(`/api/v1/activity?limit=10`),
+        axiosInstance.get(`/api/v1/notifications?limit=5`),
+        axiosInstance.get(`/api/v1/notifications/unread-count`)
       ]);
 
       const tasks = tasksResponse.data;

@@ -136,9 +136,44 @@ def get_asset(asset_id: int, db: Session = Depends(get_db)):
     return asset
 
 
+@router.get("/{asset_id}/lifecycle", response_model=List[dict])
+def get_asset_lifecycle(asset_id: int, db: Session = Depends(get_db)):
+    """
+    Get lifecycle transitions for an asset
+
+    Returns history of lifecycle state changes.
+    No authentication required for read access.
+    """
+    # Verify asset exists
+    asset = db.query(models.Asset).filter(models.Asset.asset_id == asset_id).first()
+    if not asset:
+        raise HTTPException(status_code=404, detail="Asset not found")
+
+    # Get lifecycle history ordered by most recent first
+    history = (
+        db.query(models.LifecycleHistory)
+        .filter(models.LifecycleHistory.asset_id == asset_id)
+        .order_by(models.LifecycleHistory.changed_at.desc())
+        .all()
+    )
+
+    return [
+        {
+            "history_id": h.history_id,
+            "asset_id": h.asset_id,
+            "from_state": h.from_state,
+            "to_state": h.to_state,
+            "changed_by": h.changed_by,
+            "change_reason": h.change_reason,
+            "changed_at": h.changed_at.isoformat() if h.changed_at else None
+        }
+        for h in history
+    ]
+
+
 @router.get("/{asset_id}/lifecycle-history", response_model=List[schemas.LifecycleHistoryResponse])
 def get_lifecycle_history(asset_id: int, db: Session = Depends(get_db)):
-    """Get lifecycle history for an asset"""
+    """Get lifecycle history for an asset (deprecated - use /lifecycle instead)"""
     # Verify asset exists
     asset = db.query(models.Asset).filter(models.Asset.asset_id == asset_id).first()
     if not asset:

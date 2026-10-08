@@ -90,6 +90,32 @@ def get_change_request(change_id: int, db: Session = Depends(get_db)):
     }
 
 
+@router.put("/{change_id}")
+async def update_change_request(
+    change_id: int,
+    change_request_update: schemas.ChangeRequestCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """Update a change request (only if pending)"""
+    change_request = db.query(models.ChangeRequest).filter(models.ChangeRequest.change_id == change_id).first()
+    if not change_request:
+        raise HTTPException(status_code=404, detail="Change request not found")
+
+    # Only allow editing of pending requests
+    if change_request.approval_status != "Pending":
+        raise HTTPException(status_code=400, detail="Cannot edit approved or rejected change requests")
+
+    # Update fields
+    for field, value in change_request_update.model_dump(exclude_unset=True).items():
+        setattr(change_request, field, value)
+
+    db.commit()
+    db.refresh(change_request)
+
+    return change_request
+
+
 @router.put("/{change_id}/approve")
 async def approve_change_request(
     change_id: int,

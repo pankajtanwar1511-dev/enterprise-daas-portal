@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import axios from 'axios'
+import axiosInstance from '../../utils/axiosInstance'
 import {
   Dialog,
   DialogTitle,
@@ -49,7 +49,7 @@ function AssetDetailDialog({ open, onClose, asset }) {
     setLoading(true)
     setError('')
     try {
-      const response = await axios.get(`/api/v1/assets/${asset.asset_id}/lifecycle-history`)
+      const response = await axiosInstance.get(`/api/v1/assets/${asset.asset_id}/lifecycle`)
       setLifecycleHistory(response.data)
     } catch (err) {
       console.error('Error fetching lifecycle history:', err)

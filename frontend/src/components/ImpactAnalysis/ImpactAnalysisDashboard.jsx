@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import axios from 'axios'
+import axiosInstance from '../../utils/axiosInstance'
 import {
   Box,
   Typography,
@@ -45,7 +45,7 @@ function ImpactAnalysisDashboard() {
 
   const fetchAssets = async () => {
     try {
-      const response = await axios.get('/api/v1/assets/?limit=1000')
+      const response = await axiosInstance.get('/api/v1/assets/?limit=1000')
       setAssets(response.data)
     } catch (err) {
       console.error('Error fetching assets:', err)
@@ -58,20 +58,39 @@ function ImpactAnalysisDashboard() {
     setLoading(true)
     setError('')
     try {
-      // Run impact analysis
-      const analysisResponse = await axios.post(`/api/v1/impact/analyze/${selectedAsset}`)
+      // Run impact analysis with required request body
+      const analysisResponse = await axiosInstance.post(
+        `/api/v1/impact/analyze/${selectedAsset}`,
+        {
+          change_type: 'metadata_update',  // Default change type for general analysis
+          change_description: 'General impact analysis',
+          analysis_depth: 5
+        }
+      )
       setAnalysis(analysisResponse.data)
 
       // Get visualization data
-      const vizResponse = await axios.get(`/api/v1/impact/visualization/${selectedAsset}`)
+      const vizResponse = await axiosInstance.get(`/api/v1/impact/visualization/${selectedAsset}`)
       setVisualization(vizResponse.data)
 
       // Get history
-      const historyResponse = await axios.get(`/api/v1/impact/history/${selectedAsset}`)
+      const historyResponse = await axiosInstance.get(`/api/v1/impact/history/${selectedAsset}`)
       setHistory(historyResponse.data)
     } catch (err) {
       console.error('Error analyzing impact:', err)
-      setError(err.response?.data?.detail || 'Failed to analyze impact')
+      // Handle error message properly - extract string from response
+      let errorMessage = 'Failed to analyze impact'
+      if (err.response?.data?.detail) {
+        if (typeof err.response.data.detail === 'string') {
+          errorMessage = err.response.data.detail
+        } else if (Array.isArray(err.response.data.detail)) {
+          // Handle Pydantic validation errors
+          errorMessage = err.response.data.detail.map(e => e.msg).join(', ')
+        } else if (typeof err.response.data.detail === 'object') {
+          errorMessage = JSON.stringify(err.response.data.detail)
+        }
+      }
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }

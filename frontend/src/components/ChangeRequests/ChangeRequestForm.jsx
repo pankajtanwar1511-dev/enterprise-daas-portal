@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import axios from 'axios'
+import axiosInstance from '../../utils/axiosInstance'
 import {
   Dialog,
   DialogTitle,
@@ -38,7 +38,7 @@ function ChangeRequestForm({ open, onClose, onSuccess }) {
 
   const fetchAssets = async () => {
     try {
-      const response = await axios.get('/api/v1/assets/?limit=1000')
+      const response = await axiosInstance.get('/api/v1/assets/?limit=1000')
       setAssets(response.data)
     } catch (err) {
       console.error('Error fetching assets:', err)
@@ -58,7 +58,7 @@ function ChangeRequestForm({ open, onClose, onSuccess }) {
     setError('')
 
     try {
-      await axios.post('/api/v1/change-requests/', formData)
+      await axiosInstance.post('/api/v1/change-requests/', formData)
       onSuccess()
       handleClose()
     } catch (err) {

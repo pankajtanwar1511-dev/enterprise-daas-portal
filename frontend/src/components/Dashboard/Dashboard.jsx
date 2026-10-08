@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import axios from 'axios'
+import axiosInstance from '../../utils/axiosInstance'
 import {
   Grid,
   Card,
@@ -98,7 +98,7 @@ function Dashboard() {
 
   const fetchMetrics = async () => {
     try {
-      const response = await axios.get('/api/v1/compliance/metrics')
+      const response = await axiosInstance.get('/api/v1/compliance/metrics')
       setMetrics(response.data)
     } catch (error) {
       console.error('Error fetching metrics:', error)
@@ -112,7 +112,7 @@ function Dashboard() {
       if (filterLifecycle) url += `&lifecycle_stage=${filterLifecycle}`
       if (filterCompliant !== '') url += `&compliant=${filterCompliant}`
 
-      const response = await axios.get(url)
+      const response = await axiosInstance.get(url)
       setAssets(response.data)
     } catch (error) {
       console.error('Error fetching assets:', error)
@@ -337,6 +337,161 @@ function Dashboard() {
         </CardContent>
       </Card>
 
+      {/* Filtered View Summary - Only show when filters are active */}
+      {(filterEnvironment || filterLifecycle || filterCompliant !== '') && (
+        <Card sx={{ mt: 3, backgroundColor: '#FFF3E0', border: '2px solid #FF9800' }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+              <FilterIcon sx={{ color: '#E65100' }} />
+              <Typography variant="h5" sx={{ color: '#E65100' }}>
+                Filtered View Summary
+              </Typography>
+            </Box>
+
+            {/* Active Filters Display */}
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                Active Filters:
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                {filterEnvironment && (
+                  <Chip
+                    label={`Environment: ${filterEnvironment}`}
+                    color="primary"
+                    size="small"
+                    onDelete={() => setFilterEnvironment('')}
+                  />
+                )}
+                {filterLifecycle && (
+                  <Chip
+                    label={`Lifecycle: ${filterLifecycle}`}
+                    color="primary"
+                    size="small"
+                    onDelete={() => setFilterLifecycle('')}
+                  />
+                )}
+                {filterCompliant !== '' && (
+                  <Chip
+                    label={`Compliance: ${filterCompliant === 'true' ? 'Compliant' : 'Non-Compliant'}`}
+                    color="primary"
+                    size="small"
+                    onDelete={() => setFilterCompliant('')}
+                  />
+                )}
+              </Box>
+            </Box>
+
+            {/* Filtered Metrics */}
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6} md={3}>
+                <Paper sx={{ p: 2, textAlign: 'center', backgroundColor: '#FFFFFF' }}>
+                  <Typography variant="h4" color="primary" fontWeight="bold">
+                    {assets.length}
+                  </Typography>
+                  <Typography variant="body2" color="textSecondary">
+                    Assets in View
+                  </Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Paper sx={{ p: 2, textAlign: 'center', backgroundColor: '#FFFFFF' }}>
+                  <Typography variant="h4" color="success.main" fontWeight="bold">
+                    {assets.filter(a => a.naming_compliant).length}
+                  </Typography>
+                  <Typography variant="body2" color="textSecondary">
+                    Compliant
+                  </Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Paper sx={{ p: 2, textAlign: 'center', backgroundColor: '#FFFFFF' }}>
+                  <Typography variant="h4" color="error.main" fontWeight="bold">
+                    {assets.filter(a => !a.naming_compliant).length}
+                  </Typography>
+                  <Typography variant="body2" color="textSecondary">
+                    Non-Compliant
+                  </Typography>
+                </Paper>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Paper sx={{ p: 2, textAlign: 'center', backgroundColor: '#FFFFFF' }}>
+                  <Typography variant="h4" color="primary" fontWeight="bold">
+                    {assets.length > 0
+                      ? ((assets.filter(a => a.naming_compliant).length / assets.length) * 100).toFixed(1)
+                      : 0}%
+                  </Typography>
+                  <Typography variant="body2" color="textSecondary">
+                    Compliance Rate
+                  </Typography>
+                </Paper>
+              </Grid>
+            </Grid>
+
+            {/* Breakdown by non-filtered dimensions */}
+            <Box sx={{ mt: 3 }}>
+              <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                Breakdown:
+              </Typography>
+              <Grid container spacing={2}>
+                {/* Show environment breakdown if not filtered by environment */}
+                {!filterEnvironment && (
+                  <Grid item xs={12} md={6}>
+                    <Paper sx={{ p: 2, backgroundColor: '#FFFFFF' }}>
+                      <Typography variant="body2" fontWeight="bold" gutterBottom>
+                        By Environment:
+                      </Typography>
+                      {['DEV', 'QA', 'UAT', 'PROD'].map(env => {
+                        const count = assets.filter(a => a.environment === env).length
+                        if (count === 0) return null
+                        return (
+                          <Box key={env} sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                            <Typography variant="body2">{env}:</Typography>
+                            <Typography variant="body2" fontWeight="bold">{count} assets</Typography>
+                          </Box>
+                        )
+                      })}
+                    </Paper>
+                  </Grid>
+                )}
+
+                {/* Show lifecycle breakdown if not filtered by lifecycle */}
+                {!filterLifecycle && (
+                  <Grid item xs={12} md={6}>
+                    <Paper sx={{ p: 2, backgroundColor: '#FFFFFF' }}>
+                      <Typography variant="body2" fontWeight="bold" gutterBottom>
+                        By Lifecycle Stage:
+                      </Typography>
+                      {['Draft', 'Active', 'Deprecated', 'Retired'].map(stage => {
+                        const count = assets.filter(a => a.lifecycle_stage === stage).length
+                        if (count === 0) return null
+                        return (
+                          <Box key={stage} sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                            <Typography variant="body2">{stage}:</Typography>
+                            <Typography variant="body2" fontWeight="bold">{count} assets</Typography>
+                          </Box>
+                        )
+                      })}
+                    </Paper>
+                  </Grid>
+                )}
+              </Grid>
+            </Box>
+
+            {/* Quick Action */}
+            <Box sx={{ mt: 2, textAlign: 'center' }}>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={handleClearFilters}
+                sx={{ color: '#E65100', borderColor: '#E65100' }}
+              >
+                Clear All Filters
+              </Button>
+            </Box>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Visualizations */}
       <Grid container spacing={3} sx={{ mt: 3 }}>
         {/* Compliance Pie Chart */}
@@ -400,35 +555,101 @@ function Dashboard() {
       </Grid>
 
       {/* Welcome Message */}
-      <Card sx={{ mt: 3 }}>
+      <Card sx={{ mt: 3, background: 'linear-gradient(135deg, #E3F2FD 0%, #FFFFFF 100%)' }}>
         <CardContent>
-          <Typography variant="h5" gutterBottom>
+          <Typography variant="h5" gutterBottom sx={{ color: '#1976D2', fontWeight: 600 }}>
             Welcome to Enterprise DaaS Governance Portal
           </Typography>
-          <Typography variant="body1" paragraph>
-            This portal provides enterprise-wide governance for data and platform assets, ensuring compliance
-            with naming conventions, lifecycle management, and change control processes.
+          <Typography variant="body1" paragraph sx={{ fontSize: '1.05rem' }}>
+            Your comprehensive platform for Data-as-a-Service governance, providing enterprise-wide oversight
+            across <strong>21 integrated modules</strong> - from strategic planning to operational excellence.
           </Typography>
-          <Typography variant="body2" color="textSecondary">
-            <strong>Quick Start:</strong>
-          </Typography>
-          <ul>
-            <li>
-              <Typography variant="body2">
-                Navigate to <strong>Asset Registry</strong> to view and manage assets
-              </Typography>
-            </li>
-            <li>
-              <Typography variant="body2">
-                Use <strong>Naming Validator</strong> to check compliance before registration
-              </Typography>
-            </li>
-            <li>
-              <Typography variant="body2">
-                Review <strong>Compliance Dashboard</strong> for governance metrics
-              </Typography>
-            </li>
-          </ul>
+
+          <Grid container spacing={3} sx={{ mt: 2 }}>
+            {/* Governance & Compliance */}
+            <Grid item xs={12} md={4}>
+              <Paper sx={{ p: 2, height: '100%', backgroundColor: '#F3E5F5' }}>
+                <Typography variant="h6" color="primary" gutterBottom>
+                  📊 Governance & Compliance
+                </Typography>
+                <Typography variant="body2" component="div">
+                  • <strong>Dashboard</strong> - Real-time metrics<br/>
+                  • <strong>Compliance Tracking</strong> - Policy enforcement<br/>
+                  • <strong>Audit Logs</strong> - Complete trail<br/>
+                  • <strong>Naming Validator</strong> - Standards checker
+                </Typography>
+              </Paper>
+            </Grid>
+
+            {/* Strategic Management */}
+            <Grid item xs={12} md={4}>
+              <Paper sx={{ p: 2, height: '100%', backgroundColor: '#E8F5E9' }}>
+                <Typography variant="h6" color="success.main" gutterBottom>
+                  🎯 Strategic Management
+                </Typography>
+                <Typography variant="body2" component="div">
+                  • <strong>DaaS Strategy</strong> - Business alignment<br/>
+                  • <strong>ROI Tracking</strong> - Value delivery<br/>
+                  • <strong>Vendor Management</strong> - Cost optimization<br/>
+                  • <strong>Management Reports</strong> - Executive insights
+                </Typography>
+              </Paper>
+            </Grid>
+
+            {/* Operational Tools */}
+            <Grid item xs={12} md={4}>
+              <Paper sx={{ p: 2, height: '100%', backgroundColor: '#FFF3E0' }}>
+                <Typography variant="h6" sx={{ color: '#E65100' }} gutterBottom>
+                  🛠️ Operational Tools
+                </Typography>
+                <Typography variant="body2" component="div">
+                  • <strong>Asset Registry</strong> - Lifecycle management<br/>
+                  • <strong>Change Requests</strong> - ITIL workflows<br/>
+                  • <strong>Impact Analysis</strong> - Risk assessment<br/>
+                  • <strong>Data Quality & Lineage</strong> - Trust
+                </Typography>
+              </Paper>
+            </Grid>
+          </Grid>
+
+          <Box sx={{ mt: 3, p: 2, backgroundColor: '#E3F2FD', borderRadius: 1 }}>
+            <Typography variant="body2" color="textSecondary" gutterBottom>
+              <strong>🚀 Quick Start Guide:</strong>
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2">
+                  <strong>New Users:</strong><br/>
+                  Start with <strong>Asset Registry</strong> to explore your data landscape
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2">
+                  <strong>Developers:</strong><br/>
+                  Use <strong>Naming Validator</strong> before creating assets
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2">
+                  <strong>Executives:</strong><br/>
+                  Check <strong>DaaS Strategy</strong> for ROI and business value
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2">
+                  <strong>Data Stewards:</strong><br/>
+                  Monitor <strong>Compliance Dashboard</strong> for governance health
+                </Typography>
+              </Grid>
+            </Grid>
+          </Box>
+
+          <Box sx={{ mt: 2, textAlign: 'center' }}>
+            <Typography variant="caption" color="textSecondary">
+              💡 <strong>Pro Tip:</strong> Use the navigation menu on the left to explore all 21 modules •
+              Click <strong>Refresh Data</strong> above for real-time updates
+            </Typography>
+          </Box>
         </CardContent>
       </Card>
     </Box>

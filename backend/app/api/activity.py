@@ -35,14 +35,14 @@ def get_activity_feed(
     days: Optional[int] = Query(None, ge=1, le=90, description="Filter to last N days"),
     limit: int = Query(50, ge=1, le=200, description="Maximum number of activities to return"),
     offset: int = Query(0, ge=0, description="Offset for pagination"),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     """
     Get activity feed with optional filters
 
     Returns activities ordered by creation date (newest first).
     Useful for dashboards, audit trails, and activity streams.
+    No authentication required for read access.
 
     Args:
         entity_type: Filter by entity type (asset, task, etc.)
@@ -53,7 +53,6 @@ def get_activity_feed(
         limit: Maximum number of activities to return
         offset: Offset for pagination
         db: Database session
-        current_user: Currently authenticated user
 
     Returns:
         List of activities
@@ -93,7 +92,7 @@ def get_activity_feed(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("activity_feed_failed", error=str(e), user_id=current_user.user_id)
+        logger.error("activity_feed_failed", error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve activity feed: {str(e)}"

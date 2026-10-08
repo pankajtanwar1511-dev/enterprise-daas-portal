@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import axios from 'axios'
+import axiosInstance from '../../utils/axiosInstance'
 import {
   Box,
   Typography,
@@ -28,7 +28,7 @@ function NamingValidator() {
 
     setLoading(true)
     try {
-      const response = await axios.post('/api/v1/compliance/validate/naming', {
+      const response = await axiosInstance.post('/api/v1/compliance/validate/naming', {
         asset_name: assetName,
       })
       setResult(response.data)

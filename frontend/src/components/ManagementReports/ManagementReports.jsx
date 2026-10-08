@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import axios from 'axios'
+import axiosInstance from '../../utils/axiosInstance'
 import {
   Box,
   Typography,
@@ -36,9 +36,9 @@ function ManagementReports() {
   const fetchData = async () => {
     try {
       const [execRes, govRes, boardRes] = await Promise.all([
-        axios.get('/api/v1/reports/executive-summary'),
-        axios.get('/api/v1/reports/governance-maturity'),
-        axios.get('/api/v1/reports/board-presentation')
+        axiosInstance.get('/api/v1/reports/executive-summary'),
+        axiosInstance.get('/api/v1/reports/governance-maturity'),
+        axiosInstance.get('/api/v1/reports/board-presentation')
       ])
       setExecutiveSummary(execRes.data)
       setGovernanceMaturity(govRes.data)

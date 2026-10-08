@@ -15,6 +15,61 @@ This is a full-stack web application that enables enterprise organizations to:
 
 **Current Status:** Functional prototype (v2.0) → Production-ready product (v3.0)
 
+---
+
+## ⚠️ CRITICAL: Design Document - Read This First!
+
+**Before making ANY changes to this codebase, you MUST:**
+
+1. **Read `/DESIGN.md`** - The MASTER design document (Single Source of Truth)
+2. Follow the change management process outlined in DESIGN.md
+3. Update DESIGN.md BEFORE and AFTER making changes
+
+### Why This Matters:
+
+This project previously suffered from **cascading failures** where:
+- ❌ Changing one component broke others
+- ❌ Database schema didn't match models
+- ❌ Models didn't match API expectations
+- ❌ APIs didn't match frontend needs
+- ❌ Seed scripts used outdated field names
+
+### The Solution:
+
+**DESIGN.md = Single Source of Truth**
+
+All changes MUST follow this flow:
+```
+1. Read DESIGN.md (understand current state)
+2. Plan change across ALL layers (DB → Model → API → Frontend)
+3. Update DESIGN.md with planned changes
+4. Implement changes in code
+5. Test end-to-end
+6. Update DESIGN.md with actual implementation
+```
+
+**Golden Rules:**
+- ✅ PostgreSQL schema = Ultimate source of truth
+- ✅ NEVER change models without migration
+- ✅ NEVER change APIs without updating frontend
+- ✅ ALWAYS update DESIGN.md after ANY change
+- ✅ ALWAYS test end-to-end after changes
+
+### Quick Reference:
+
+| What You Need | Where to Look |
+|--------------|---------------|
+| Database schemas | `DESIGN.md` - Section 3 |
+| Model definitions | `DESIGN.md` - Section 4 |
+| API endpoints | `DESIGN.md` - Section 5 |
+| Frontend components | `DESIGN.md` - Section 6 |
+| Change process | `DESIGN.md` - Section 8 |
+| Known issues | `DESIGN.md` - Section 9 |
+
+**If you violate this process, you WILL break the application!**
+
+---
+
 ## Essential Commands
 
 ### Backend Setup & Development

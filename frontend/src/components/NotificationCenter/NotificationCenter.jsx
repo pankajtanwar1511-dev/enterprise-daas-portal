@@ -23,9 +23,8 @@ import {
   Delete as DeleteIcon,
   DoneAll as DoneAllIcon
 } from '@mui/icons-material';
-import axios from 'axios';
+import axiosInstance from '../../utils/axiosInstance';
 
-const API_BASE_URL = 'http://localhost:8000';
 
 const NotificationCenter = () => {
   const [anchorEl, setAnchorEl] = useState(null);
@@ -44,11 +43,7 @@ const NotificationCenter = () => {
 
   const fetchUnreadCount = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/v1/notifications/unread-count`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+      const response = await axiosInstance.get(`/api/v1/notifications/unread-count`);
       setUnreadCount(response.data.unread_count);
     } catch (err) {
       console.error('Error fetching unread count:', err);
@@ -58,11 +53,7 @@ const NotificationCenter = () => {
   const fetchNotifications = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/v1/notifications?limit=20`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+      const response = await axiosInstance.get(`/api/v1/notifications?limit=20`);
       setNotifications(response.data);
     } catch (err) {
       console.error('Error fetching notifications:', err);
@@ -82,14 +73,9 @@ const NotificationCenter = () => {
 
   const markAsRead = async (notificationId) => {
     try {
-      await axios.post(
-        `${API_BASE_URL}/api/v1/notifications/${notificationId}/read`,
-        {},
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        }
+      await axiosInstance.post(
+        `/api/v1/notifications/${notificationId}/read`,
+        {}
       );
       // Update local state
       setNotifications(notifications.map(n =>
@@ -103,14 +89,9 @@ const NotificationCenter = () => {
 
   const markAllAsRead = async () => {
     try {
-      await axios.post(
-        `${API_BASE_URL}/api/v1/notifications/read-all`,
-        {},
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        }
+      await axiosInstance.post(
+        `/api/v1/notifications/read-all`,
+        {}
       );
       // Update local state
       setNotifications(notifications.map(n => ({ ...n, read: true })));
@@ -122,11 +103,7 @@ const NotificationCenter = () => {
 
   const deleteNotification = async (notificationId) => {
     try {
-      await axios.delete(`${API_BASE_URL}/api/v1/notifications/${notificationId}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+      await axiosInstance.delete(`/api/v1/notifications/${notificationId}`);
       // Update local state
       setNotifications(notifications.filter(n => n.notification_id !== notificationId));
       fetchUnreadCount();

@@ -18,7 +18,7 @@ import {
   ListItemAvatar,
   ListItemText,
   Divider
-} from '@mui/icons-material';
+} from '@mui/material';
 import {
   Timeline,
   TimelineItem,
@@ -28,9 +28,7 @@ import {
   TimelineDot,
   TimelineOppositeContent
 } from '@mui/lab';
-import axios from 'axios';
-
-const API_BASE_URL = 'http://localhost:8000';
+import axiosInstance from '../../utils/axiosInstance';
 
 const ActivityFeed = ({ entityType = null, entityId = null, limit = 20 }) => {
   const [activities, setActivities] = useState([]);
@@ -50,10 +48,10 @@ const ActivityFeed = ({ entityType = null, entityId = null, limit = 20 }) => {
     setLoading(true);
     setError(null);
     try {
-      let url = `${API_BASE_URL}/api/v1/activity?limit=${limit}`;
+      let url = `/api/v1/activity?limit=${limit}`;
 
       if (entityType && entityId) {
-        url = `${API_BASE_URL}/api/v1/activity/entity/${entityType}/${entityId}?limit=${limit}`;
+        url = `/api/v1/activity/entity/${entityType}/${entityId}?limit=${limit}`;
       } else {
         const params = new URLSearchParams();
         if (filters.entity_type) params.append('entity_type', filters.entity_type);
@@ -63,11 +61,7 @@ const ActivityFeed = ({ entityType = null, entityId = null, limit = 20 }) => {
         url += `&${params.toString()}`;
       }
 
-      const response = await axios.get(url, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+      const response = await axiosInstance.get(url);
       setActivities(response.data);
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to fetch activities');

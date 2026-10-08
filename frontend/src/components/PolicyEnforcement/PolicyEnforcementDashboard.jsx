@@ -95,7 +95,19 @@ function PolicyEnforcementDashboard() {
         axios.get('/api/v1/policies/validations'),
         axios.get('/api/v1/policies/statistics'),
       ])
-      setPolicies(policiesRes.data.policies || [])
+
+      // Parse JSON strings for applies_to_domains and applies_to_environments
+      const parsedPolicies = (policiesRes.data.policies || []).map(policy => ({
+        ...policy,
+        applies_to_domains: typeof policy.applies_to_domains === 'string'
+          ? JSON.parse(policy.applies_to_domains)
+          : policy.applies_to_domains || [],
+        applies_to_environments: typeof policy.applies_to_environments === 'string'
+          ? JSON.parse(policy.applies_to_environments)
+          : policy.applies_to_environments || []
+      }))
+
+      setPolicies(parsedPolicies)
       setValidations(validationsRes.data.validations || [])
       setStatistics(statsRes.data)
     } catch (err) {

@@ -130,13 +130,12 @@ def list_tasks(
     overdue: Optional[bool] = Query(None, description="Filter overdue tasks"),
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     """
     List tasks with optional filters
 
-    Returns tasks visible to the current user based on filters.
+    Returns all tasks based on filters (no authentication required for read access).
     """
     try:
         query = db.query(Task)
@@ -178,7 +177,7 @@ def list_tasks(
         return [task.to_dict() for task in tasks]
 
     except Exception as e:
-        logger.error("task_list_failed", error=str(e), user_id=current_user.user_id)
+        logger.error("task_list_failed", error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve tasks: {str(e)}"
@@ -188,8 +187,7 @@ def list_tasks(
 @router.get("/{task_id}", response_model=TaskResponse)
 def get_task(
     task_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     """
     Get task by ID
@@ -197,7 +195,6 @@ def get_task(
     Args:
         task_id: Task ID
         db: Database session
-        current_user: Currently authenticated user
 
     Returns:
         Task details

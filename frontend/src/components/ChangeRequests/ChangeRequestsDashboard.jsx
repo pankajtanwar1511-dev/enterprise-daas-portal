@@ -15,6 +15,11 @@ import {
   Tooltip,
   TextField,
   MenuItem,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material'
 import {
   Add as AddIcon,
@@ -24,6 +29,8 @@ import {
   Warning as WarningIcon,
   TrendingUp as TrendingUpIcon,
   Assignment as AssignmentIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material'
 import {
   PieChart,
@@ -41,7 +48,7 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import EnhancedTable from '../common/EnhancedTable'
-import ChangeRequestForm from './ChangeRequestForm'
+import ChangeRequestFormDialog from './ChangeRequestFormDialog'
 import ChangeRequestDetailDialog from './ChangeRequestDetailDialog'
 
 function ChangeRequestsDashboard() {
@@ -54,6 +61,8 @@ function ChangeRequestsDashboard() {
   const [formOpen, setFormOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [selectedRequest, setSelectedRequest] = useState(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [requestToDelete, setRequestToDelete] = useState(null)
 
   // Filters
   const [filterStatus, setFilterStatus] = useState('')
@@ -104,6 +113,34 @@ function ChangeRequestsDashboard() {
   const handleFormSuccess = () => {
     fetchRequests()
     fetchStats()
+  }
+
+  const handleAddRequest = () => {
+    setSelectedRequest(null)
+    setFormOpen(true)
+  }
+
+  const handleEditRequest = (request) => {
+    setSelectedRequest(request)
+    setFormOpen(true)
+  }
+
+  const handleDeleteClick = (request) => {
+    setRequestToDelete(request)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    try {
+      await axiosInstance.delete(`/api/v1/change-requests/${requestToDelete.change_id}`)
+      setDeleteDialogOpen(false)
+      setRequestToDelete(null)
+      fetchRequests()
+      fetchStats()
+    } catch (err) {
+      console.error('Error deleting change request:', err)
+      setError(err.response?.data?.detail || 'Failed to delete change request')
+    }
   }
 
   const getRiskColor = (risk) => {
@@ -264,15 +301,39 @@ function ChangeRequestsDashboard() {
       sortable: false,
       align: 'right',
       render: (value, row) => (
-        <Tooltip title="View Details">
-          <IconButton
-            size="small"
-            onClick={() => handleViewDetails(row)}
-            color="info"
-          >
-            <ViewIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        <Box sx={{ display: 'flex', gap: 0.5 }}>
+          <Tooltip title="View Details">
+            <IconButton
+              size="small"
+              onClick={() => handleViewDetails(row)}
+              color="info"
+            >
+              <ViewIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          {row.approval_status === 'Pending' && (
+            <>
+              <Tooltip title="Edit">
+                <IconButton
+                  size="small"
+                  onClick={() => handleEditRequest(row)}
+                  color="primary"
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Delete">
+                <IconButton
+                  size="small"
+                  onClick={() => handleDeleteClick(row)}
+                  color="error"
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </>
+          )}
+        </Box>
       ),
     },
   ]
@@ -292,7 +353,7 @@ function ChangeRequestsDashboard() {
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => setFormOpen(true)}
+            onClick={handleAddRequest}
           >
             Create Change Request
           </Button>
@@ -545,12 +606,43 @@ function ChangeRequestsDashboard() {
         />
       )}
 
-      {/* Create Form Dialog */}
-      <ChangeRequestForm
+      {/* Create/Edit Form Dialog */}
+      <ChangeRequestFormDialog
         open={formOpen}
-        onClose={() => setFormOpen(false)}
-        onSuccess={handleFormSuccess}
+        onClose={() => {
+          setFormOpen(false)
+          setSelectedRequest(null)
+        }}
+        changeRequest={selectedRequest}
+        onSave={handleFormSuccess}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete this change request?
+            <br />
+            <strong>{requestToDelete?.title}</strong>
+            <br /><br />
+            This action cannot be undone. Only pending change requests can be deleted.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleConfirmDelete} color="error" variant="contained">
+            Delete Change Request
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Detail Dialog */}
       <ChangeRequestDetailDialog

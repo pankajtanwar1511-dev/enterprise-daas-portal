@@ -18,6 +18,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from app.database import Base
 from app import models  # Import core models
 from app import models_extended  # Import extended models
+from app import models_advanced  # Import advanced models (data quality, lineage, SLA)
+from app import models_integrations  # Import integration models (webhooks, API keys)
+from app import models_itsm  # Import ITSM models
+from app import models_collaboration  # Import collaboration models (tasks, notifications)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

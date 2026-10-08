@@ -66,7 +66,7 @@ def admin_token(client, db_session):
     user = User(
         username="admin",
         email="admin@test.com",
-        hashed_password=get_password_hash("admin123"),
+        password_hash=get_password_hash("admin123"),  # Fixed: password_hash not hashed_password
         role_id=admin_role.role_id,
         is_active=True
     )
@@ -75,7 +75,7 @@ def admin_token(client, db_session):
 
     response = client.post(
         "/api/v1/auth/login",
-        json={"username": "admin", "password": "admin123"}
+        data={"username": "admin", "password": "admin123"}  # Fixed: use data= for form data
     )
     assert response.status_code == 200
     return response.json()["access_token"]
@@ -428,8 +428,8 @@ def test_compliance_strategy_integration(client, db_session, admin_token):
             "domain_id": domain.domain_id,
             "environment": "PROD",
             "owner_id": admin_user.user_id,
-            "naming_compliant": True,
-            "has_documentation": True,
+            "version": "v1",  # Required field
+            "lifecycle_stage": "Active",  # Optional, defaults to Draft
             "documentation_url": "https://docs.example.com"
         }
     )

@@ -149,6 +149,7 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
         self.exempt_paths = exempt_paths or [
             "/api/v1/auth/login",
             "/api/v1/auth/register",
+            "/api/v1/compliance/validate/naming",  # Read-only validation endpoint
             "/docs",
             "/redoc",
             "/openapi.json",

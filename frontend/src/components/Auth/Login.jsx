@@ -123,9 +123,23 @@ const Login = () => {
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <PersonIcon color="action" />
+                      <PersonIcon sx={{ color: '#1976D2' }} />
                     </InputAdornment>
                   ),
+                }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    backgroundColor: '#FFFFFF',
+                    '& fieldset': {
+                      borderColor: '#BDBDBD',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: '#1976D2',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: '#1976D2',
+                    },
+                  },
                 }}
               />
 
@@ -143,7 +157,7 @@ const Login = () => {
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <LockIcon color="action" />
+                      <LockIcon sx={{ color: '#1976D2' }} />
                     </InputAdornment>
                   ),
                   endAdornment: (
@@ -157,6 +171,20 @@ const Login = () => {
                       </IconButton>
                     </InputAdornment>
                   ),
+                }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    backgroundColor: '#FFFFFF',
+                    '& fieldset': {
+                      borderColor: '#BDBDBD',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: '#1976D2',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: '#1976D2',
+                    },
+                  },
                 }}
               />
 

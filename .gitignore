@@ -71,3 +71,6 @@ htmlcov/
 
 # Alembic
 alembic/versions/*.pyc
+
+# Local DB export (contains user emails/password hashes) - never commit
+backend/sqlite_export/

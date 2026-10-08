@@ -7,7 +7,7 @@ Endpoints for in-app notification management.
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 
 from ..database import get_db
@@ -73,31 +73,33 @@ def create_notification(
 
 @router.get("/", response_model=List[NotificationResponse])
 def list_notifications(
+    user_id: Optional[int] = Query(None, description="Filter by user ID"),
     unread_only: bool = Query(False, description="Show only unread notifications"),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     """
-    List notifications for current user
+    List notifications
 
     Returns notifications ordered by creation date (newest first).
+    No authentication required for read access.
 
     Args:
+        user_id: Optional user ID filter
         unread_only: If True, return only unread notifications
         limit: Maximum number of notifications to return
         offset: Offset for pagination
         db: Database session
-        current_user: Currently authenticated user
 
     Returns:
         List of notifications
     """
     try:
-        query = db.query(Notification).filter(
-            Notification.user_id == current_user.user_id
-        )
+        query = db.query(Notification)
+
+        if user_id is not None:
+            query = query.filter(Notification.user_id == user_id)
 
         if unread_only:
             query = query.filter(Notification.read == False)
@@ -109,10 +111,52 @@ def list_notifications(
         return [notification.to_dict() for notification in notifications]
 
     except Exception as e:
-        logger.error("notification_list_failed", error=str(e), user_id=current_user.user_id)
+        logger.error("notification_list_failed", error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to retrieve notifications: {str(e)}"
+        )
+
+
+@router.get("/unread", response_model=List[NotificationResponse])
+def get_unread_notifications(
+    user_id: Optional[int] = Query(None, description="Filter by user ID"),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db)
+):
+    """
+    Get unread notifications
+
+    Returns unread notifications ordered by creation date (newest first).
+    No authentication required for read access.
+
+    Args:
+        user_id: Optional user ID filter
+        limit: Maximum number of notifications to return
+        offset: Offset for pagination
+        db: Database session
+
+    Returns:
+        List of unread notifications
+    """
+    try:
+        query = db.query(Notification).filter(Notification.read == False)
+
+        if user_id is not None:
+            query = query.filter(Notification.user_id == user_id)
+
+        notifications = query.order_by(
+            Notification.created_at.desc()
+        ).offset(offset).limit(limit).all()
+
+        return [notification.to_dict() for notification in notifications]
+
+    except Exception as e:
+        logger.error("unread_notifications_failed", error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve unread notifications: {str(e)}"
         )
 
 

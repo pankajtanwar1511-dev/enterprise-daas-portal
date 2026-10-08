@@ -71,9 +71,32 @@ function SLAMonitoringDashboard() {
         axiosInstance.get('/api/v1/sla/violations'),
         axiosInstance.get('/api/v1/assets?limit=1000'),
       ])
-      setMetrics(metricsRes.data.metrics || [])
-      setSummary(summaryRes.data)
-      setBreaches(breachesRes.data.violations || [])
+
+      // Map backend field names to frontend expectations
+      const mappedMetrics = (metricsRes.data.metrics || []).map(m => ({
+        ...m,
+        metric_value: m.current_value,
+        sla_target: m.target_value,
+        recorded_at: m.last_measured,
+      }))
+
+      // Map backend summary to frontend expectations
+      const mappedSummary = {
+        total_slas: summaryRes.data.total_metrics || 0,
+        breached_slas: summaryRes.data.non_compliant_metrics || 0,
+      }
+
+      // Map backend violations to frontend expectations
+      const mappedBreaches = (breachesRes.data.violations || []).map(b => ({
+        ...b,
+        breached_at: b.violated_at,
+        sla_target: b.target_value,
+        severity: b.severity || 'Medium',
+      }))
+
+      setMetrics(mappedMetrics)
+      setSummary(mappedSummary)
+      setBreaches(mappedBreaches)
       setAssets(assetsRes.data)
     } catch (err) {
       console.error('Error fetching SLA data:', err)

@@ -21,9 +21,8 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon
 } from '@mui/icons-material';
-import axios from 'axios';
+import axiosInstance from '../../utils/axiosInstance';
 
-const API_BASE_URL = 'http://localhost:8000';
 
 const CommentSection = ({ entityType, entityId }) => {
   const [comments, setComments] = useState([]);
@@ -44,13 +43,8 @@ const CommentSection = ({ entityType, entityId }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get(
-        `${API_BASE_URL}/api/v1/comments?entity_type=${entityType}&entity_id=${entityId}&include_replies=true`,
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        }
+      const response = await axiosInstance.get(
+        `/api/v1/comments?entity_type=${entityType}&entity_id=${entityId}&include_replies=true`
       );
       setComments(response.data);
     } catch (err) {
@@ -72,11 +66,7 @@ const CommentSection = ({ entityType, entityId }) => {
         parent_comment_id: replyingTo?.comment_id || null
       };
 
-      await axios.post(`${API_BASE_URL}/api/v1/comments`, payload, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+      await axiosInstance.post(`/api/v1/comments`, payload);
 
       setNewComment('');
       setReplyingTo(null);
@@ -91,14 +81,9 @@ const CommentSection = ({ entityType, entityId }) => {
     if (!editText.trim()) return;
 
     try {
-      await axios.put(
-        `${API_BASE_URL}/api/v1/comments/${commentId}`,
-        { comment_text: editText },
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        }
+      await axiosInstance.put(
+        `/api/v1/comments/${commentId}`,
+        { comment_text: editText }
       );
 
       setEditingComment(null);
@@ -116,11 +101,7 @@ const CommentSection = ({ entityType, entityId }) => {
     }
 
     try {
-      await axios.delete(`${API_BASE_URL}/api/v1/comments/${commentId}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+      await axiosInstance.delete(`/api/v1/comments/${commentId}`);
       fetchComments();
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to delete comment');

@@ -40,9 +40,8 @@ import {
   Block as BlockIcon,
   Cancel as CancelIcon
 } from '@mui/icons-material';
-import axios from 'axios';
+import axiosInstance from '../../utils/axiosInstance';
 
-const API_BASE_URL = 'http://localhost:8000';
 
 const TaskManagement = () => {
   const [tasks, setTasks] = useState([]);
@@ -85,11 +84,7 @@ const TaskManagement = () => {
       if (filters.assigned_to) params.append('assigned_to', filters.assigned_to);
       if (filters.overdue) params.append('overdue', 'true');
 
-      const response = await axios.get(`${API_BASE_URL}/api/v1/tasks?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+      const response = await axiosInstance.get(`/api/v1/tasks?${params.toString()}`);
       setTasks(response.data);
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to fetch tasks');
@@ -160,25 +155,15 @@ const TaskManagement = () => {
 
       if (editingTask) {
         // Update existing task
-        await axios.put(
-          `${API_BASE_URL}/api/v1/tasks/${editingTask.task_id}`,
-          payload,
-          {
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
-          }
+        await axiosInstance.put(
+          `/api/v1/tasks/${editingTask.task_id}`,
+          payload
         );
       } else {
         // Create new task
-        await axios.post(
-          `${API_BASE_URL}/api/v1/tasks`,
-          payload,
-          {
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
-          }
+        await axiosInstance.post(
+          `/api/v1/tasks`,
+          payload
         );
       }
 
@@ -196,11 +181,7 @@ const TaskManagement = () => {
     }
 
     try {
-      await axios.delete(`${API_BASE_URL}/api/v1/tasks/${taskId}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+      await axiosInstance.delete(`/api/v1/tasks/${taskId}`);
       fetchTasks();
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to delete task');

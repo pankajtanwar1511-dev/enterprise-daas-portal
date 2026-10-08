@@ -55,14 +55,7 @@ function ComplianceDashboard() {
     }
   }
 
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-        <CircularProgress />
-      </Box>
-    )
-  }
-
+  // Calculate derived values (must be before early return to avoid hook order issues)
   const complianceRate = metrics?.compliance_rate || 0
   const getComplianceColor = () => {
     if (complianceRate >= 95) return 'success'
@@ -120,7 +113,7 @@ function ComplianceDashboard() {
     Low: '#2196F3',
   }
 
-  // Chart data for compliance trends
+  // Chart data for compliance trends (useMemo must be called before early return)
   const chartData = useMemo(() => {
     if (!metrics) return null
 
@@ -146,6 +139,15 @@ function ComplianceDashboard() {
 
     return { trendData, violationsTrendData }
   }, [metrics, violations, complianceRate])
+
+  // Early return for loading state (MUST be after all hooks)
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+        <CircularProgress />
+      </Box>
+    )
+  }
 
   // Define columns for violations table
   const violationsColumns = [

@@ -10,14 +10,26 @@ import {
   Paper,
   Chip,
   LinearProgress,
+  Button,
+  IconButton,
+  Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material'
 import EnhancedTable from '../common/EnhancedTable'
+import VendorFormDialog from './VendorFormDialog'
 import {
   Business,
   AttachMoney,
   CheckCircle,
   Warning,
   TrendingDown,
+  Add,
+  Edit,
+  Delete,
 } from '@mui/icons-material'
 import {
   PieChart,
@@ -28,7 +40,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   Legend,
   ResponsiveContainer,
 } from 'recharts'
@@ -37,7 +49,16 @@ function VendorManagement() {
   const [dashboard, setDashboard] = useState(null)
   const [budgetData, setBudgetData] = useState(null)
   const [slaData, setSlaData] = useState(null)
+  const [vendors, setVendors] = useState([])
   const [loading, setLoading] = useState(true)
+
+  // Form dialog state
+  const [formDialogOpen, setFormDialogOpen] = useState(false)
+  const [selectedVendor, setSelectedVendor] = useState(null)
+
+  // Delete confirmation state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [vendorToDelete, setVendorToDelete] = useState(null)
 
   useEffect(() => {
     fetchData()
@@ -45,19 +66,52 @@ function VendorManagement() {
 
   const fetchData = async () => {
     try {
-      const [dashRes, budgetRes, slaRes] = await Promise.all([
+      const [dashRes, budgetRes, slaRes, vendorsRes] = await Promise.all([
         axiosInstance.get('/api/v1/vendors/dashboard'),
         axiosInstance.get('/api/v1/vendors/budget-tracking'),
-        axiosInstance.get('/api/v1/vendors/sla-tracking')
+        axiosInstance.get('/api/v1/vendors/sla-tracking'),
+        axiosInstance.get('/api/v1/vendors/')
       ])
       setDashboard(dashRes.data)
       setBudgetData(budgetRes.data)
       setSlaData(slaRes.data)
+      setVendors(vendorsRes.data || [])
       setLoading(false)
     } catch (error) {
       console.error('Error fetching vendor data:', error)
       setLoading(false)
     }
+  }
+
+  const handleAddVendor = () => {
+    setSelectedVendor(null)
+    setFormDialogOpen(true)
+  }
+
+  const handleEditVendor = (vendor) => {
+    setSelectedVendor(vendor)
+    setFormDialogOpen(true)
+  }
+
+  const handleDeleteClick = (vendor) => {
+    setVendorToDelete(vendor)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    try {
+      await axiosInstance.delete(`/api/v1/vendors/${vendorToDelete.vendor_id}`)
+      setDeleteDialogOpen(false)
+      setVendorToDelete(null)
+      fetchData() // Refresh data
+    } catch (error) {
+      console.error('Error deleting vendor:', error)
+      alert('Failed to delete vendor')
+    }
+  }
+
+  const handleFormSave = () => {
+    fetchData() // Refresh data after save
   }
 
   if (loading) {
@@ -235,6 +289,124 @@ function VendorManagement() {
         </Grid>
       </Grid>
 
+      {/* Vendor List with CRUD */}
+      <Card sx={{ mt: 3 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h5">
+              Vendor Directory
+            </Typography>
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={handleAddVendor}
+            >
+              Add New Vendor
+            </Button>
+          </Box>
+          <EnhancedTable
+            columns={[
+              {
+                id: 'vendor_name',
+                label: 'Vendor Name',
+                sortable: true,
+                render: (value) => (
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    {value}
+                  </Typography>
+                ),
+              },
+              {
+                id: 'vendor_type',
+                label: 'Type',
+                sortable: true,
+              },
+              {
+                id: 'status',
+                label: 'Status',
+                sortable: true,
+                render: (value) => (
+                  <Chip
+                    label={value}
+                    size="small"
+                    color={value === 'Active' ? 'success' : 'default'}
+                  />
+                ),
+              },
+              {
+                id: 'annual_spend',
+                label: 'Annual Cost',
+                sortable: true,
+                render: (value) => value ? `$${(value / 1000000).toFixed(2)}M` : 'N/A',
+              },
+              {
+                id: 'contact_person',
+                label: 'Contact',
+                sortable: true,
+                render: (value, row) => (
+                  <Box>
+                    <Typography variant="body2">{value || 'N/A'}</Typography>
+                    {row.contact_email && (
+                      <Typography variant="caption" color="textSecondary">
+                        {row.contact_email}
+                      </Typography>
+                    )}
+                  </Box>
+                ),
+              },
+              {
+                id: 'performance_rating',
+                label: 'Rating',
+                sortable: true,
+                align: 'center',
+                render: (value) => (
+                  <Chip
+                    label={value ? `${value}/5` : 'N/A'}
+                    size="small"
+                    color={value >= 4 ? 'success' : value >= 3 ? 'warning' : 'error'}
+                  />
+                ),
+              },
+              {
+                id: 'actions',
+                label: 'Actions',
+                sortable: false,
+                render: (value, row) => (
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Tooltip title="Edit">
+                      <IconButton
+                        size="small"
+                        color="primary"
+                        onClick={() => handleEditVendor(row)}
+                      >
+                        <Edit fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete">
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => handleDeleteClick(row)}
+                      >
+                        <Delete fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                ),
+              },
+            ]}
+            data={vendors}
+            loading={false}
+            onRefresh={fetchData}
+            defaultOrderBy="vendor_name"
+            defaultOrder="asc"
+            searchPlaceholder="Search vendors..."
+            exportFileName="vendors_list"
+            rowsPerPageOptions={[10, 25, 50]}
+          />
+        </CardContent>
+      </Card>
+
       {/* Budget Tracking */}
       <Card sx={{ mt: 3 }}>
         <CardContent>
@@ -388,7 +560,7 @@ function VendorManagement() {
                       />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value) => `$${(value / 1000000).toFixed(2)}M`} />
+                  <RechartsTooltip formatter={(value) => `$${(value / 1000000).toFixed(2)}M`} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
@@ -414,7 +586,7 @@ function VendorManagement() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="status" />
                   <YAxis />
-                  <Tooltip />
+                  <RechartsTooltip />
                   <Legend />
                   <Bar dataKey="count" name="SLAs">
                     <Cell fill="#4CAF50" />
@@ -427,6 +599,38 @@ function VendorManagement() {
           </Card>
         </Grid>
       </Grid>
+
+      {/* Vendor Form Dialog */}
+      <VendorFormDialog
+        open={formDialogOpen}
+        onClose={() => setFormDialogOpen(false)}
+        vendor={selectedVendor}
+        onSave={handleFormSave}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete this vendor?
+            <br />
+            <br />
+            <strong>{vendorToDelete?.vendor_name}</strong>
+            <br />
+            Type: {vendorToDelete?.vendor_type}
+            <br />
+            <br />
+            This action cannot be undone. All associated SLAs will also be deleted.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleConfirmDelete} color="error" variant="contained">
+            Delete Vendor
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }

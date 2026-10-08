@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import axios from 'axios'
+import axiosInstance from '../../utils/axiosInstance'
 import {
   Dialog,
   DialogTitle,
@@ -41,7 +41,7 @@ function ChangeRequestDetailDialog({ open, onClose, request, onUpdate }) {
     setLoading(true)
     setError('')
     try {
-      const response = await axios.get(`/api/v1/change-requests/${request.change_id}`)
+      const response = await axiosInstance.get(`/api/v1/change-requests/${request.change_id}`)
       setDetails(response.data)
     } catch (err) {
       console.error('Error fetching change request details:', err)
@@ -55,7 +55,7 @@ function ChangeRequestDetailDialog({ open, onClose, request, onUpdate }) {
     setLoading(true)
     setError('')
     try {
-      await axios.put(`/api/v1/change-requests/${request.change_id}/approve`, null, {
+      await axiosInstance.put(`/api/v1/change-requests/${request.change_id}/approve`, null, {
         params: { approval_comments: approvalComments }
       })
       onUpdate()
@@ -77,7 +77,7 @@ function ChangeRequestDetailDialog({ open, onClose, request, onUpdate }) {
     setLoading(true)
     setError('')
     try {
-      await axios.put(`/api/v1/change-requests/${request.change_id}/reject`, null, {
+      await axiosInstance.put(`/api/v1/change-requests/${request.change_id}/reject`, null, {
         params: { approval_comments: approvalComments }
       })
       onUpdate()
@@ -94,7 +94,7 @@ function ChangeRequestDetailDialog({ open, onClose, request, onUpdate }) {
     setLoading(true)
     setError('')
     try {
-      await axios.put(`/api/v1/change-requests/${request.change_id}/complete`)
+      await axiosInstance.put(`/api/v1/change-requests/${request.change_id}/complete`)
       onUpdate()
       handleClose()
     } catch (err) {

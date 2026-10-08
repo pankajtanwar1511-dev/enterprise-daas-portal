@@ -69,7 +69,7 @@ def admin_user(db_session):
     user = User(
         username="admin",
         email="admin@test.com",
-        hashed_password=get_password_hash("admin123"),
+        password_hash=get_password_hash("admin123"),  # Fixed: password_hash not hashed_password
         role_id=admin_role.role_id,
         is_active=True
     )
@@ -84,7 +84,7 @@ def admin_token(client, admin_user):
     """Get admin authentication token"""
     response = client.post(
         "/api/v1/auth/login",
-        json={
+        data={  # Fixed: use data= for form data, not json=
             "username": admin_user["username"],
             "password": admin_user["password"]
         }
@@ -203,7 +203,7 @@ def test_user_registration_and_auth_workflow(client, db_session):
     # Step 2: Login and get token
     response = client.post(
         "/api/v1/auth/login",
-        json={
+        data={  # Fixed: use data= for form data, not json=
             "username": "testuser",
             "password": "test123456"
         }
@@ -492,7 +492,7 @@ def test_asset_deletion_workflow(client, db_session, admin_token):
         f"/api/v1/assets/{asset_id}",
         headers={"Authorization": f"Bearer {admin_token}"}
     )
-    assert response.status_code == 200
+    assert response.status_code == 204  # Fixed: 204 No Content is correct for DELETE
 
     # Step 3: Verify asset is soft-deleted (should return 404 or marked as deleted)
     response = client.get(

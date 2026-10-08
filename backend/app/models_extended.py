@@ -43,6 +43,10 @@ class BusinessGoal(Base):
     current_value = Column(Float)
     target_value = Column(Float)
     priority = Column(String(20))  # High, Medium, Low
+    success_criteria = Column(Text)  # Success criteria description
+    expected_roi = Column(Float)  # Expected return on investment
+    investment_amount = Column(Float)  # Investment amount
+    completion_percentage = Column(Integer, default=0)  # Completion percentage (0-100)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     strategic_initiatives = relationship("StrategicInitiative", back_populates="business_goal")
@@ -65,6 +69,7 @@ class StrategicInitiative(Base):
     status = Column(String(50), default="Planning")
     expected_roi = Column(Float)  # Expected return on investment
     stakeholder_count = Column(Integer, default=0)
+    completion_percentage = Column(Integer, default=0)  # Completion percentage (0-100)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     business_goal = relationship("BusinessGoal", back_populates="strategic_initiatives")
@@ -81,6 +86,7 @@ class InitiativeDeliverable(Base):
     description = Column(Text)
     due_date = Column(Date)
     status = Column(String(50))
+    assigned_to = Column(Integer, ForeignKey("users.user_id"))  # User assigned to deliverable
     completion_percentage = Column(Integer, default=0)
 
     initiative = relationship("StrategicInitiative", back_populates="deliverables")
@@ -219,3 +225,38 @@ class BudgetAllocation(Base):
     forecasted_spend = Column(Float)
     notes = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# Value Delivered Metrics (Production-ready tracking)
+class ValueDeliveredMetric(Base):
+    __tablename__ = "value_delivered_metrics"
+
+    metric_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    domain_id = Column(Integer, ForeignKey("domains.domain_id"), nullable=False)
+    initiative_id = Column(Integer, ForeignKey("strategic_initiatives.initiative_id"), nullable=True)
+    business_goal_id = Column(Integer, ForeignKey("business_goals.goal_id"), nullable=True)
+
+    # Metric Information
+    metric_type = Column(String(50))  # cost_savings, time_reduction, revenue_increase, efficiency_gain, quality_improvement
+    value_delivered = Column(String(255), nullable=False)  # e.g., "$850K cost savings", "60% faster hiring"
+    key_achievement = Column(Text, nullable=False)  # Detailed description of achievement
+
+    # Measurement & Validation
+    measurement_date = Column(Date, nullable=False)  # When was this value measured
+    measurement_period = Column(String(50))  # Annual, Quarterly, Monthly, One-time
+    data_source = Column(String(100))  # manual, calculated, integrated, system_generated
+    validated_by = Column(Integer, ForeignKey("users.user_id"))  # User who validated this metric
+    validation_date = Column(Date)
+
+    # Status & Visibility
+    status = Column(String(50), default="Draft")  # Draft, Approved, Published, Archived
+    is_active = Column(Boolean, default=True)  # Active metrics shown on dashboard
+    display_order = Column(Integer, default=0)  # For custom ordering on dashboard
+
+    # Audit Trail
+    created_by = Column(Integer, ForeignKey("users.user_id"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Notes & Documentation
+    notes = Column(Text)  # Internal notes, calculation methodology, etc.

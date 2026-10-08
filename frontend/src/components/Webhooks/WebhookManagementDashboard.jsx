@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import axios from '../../utils/axiosInstance'
+import axiosInstance from '../../utils/axiosInstance'
 import {
   Box,
   Typography,
@@ -91,8 +91,17 @@ function WebhookManagementDashboard() {
     setLoading(true)
     setError('')
     try {
-      const response = await axios.get('/api/v1/webhooks/')
-      setWebhooks(response.data)
+      const response = await axiosInstance.get('/api/v1/webhooks/')
+
+      // Parse JSON string for events field
+      const parsedWebhooks = (response.data || []).map(webhook => ({
+        ...webhook,
+        events: typeof webhook.events === 'string'
+          ? JSON.parse(webhook.events)
+          : webhook.events || []
+      }))
+
+      setWebhooks(parsedWebhooks)
     } catch (err) {
       console.error('Error fetching webhooks:', err)
       setError('Failed to load webhooks')
@@ -104,7 +113,7 @@ function WebhookManagementDashboard() {
   const handleCreateWebhook = async (e) => {
     e.preventDefault()
     try {
-      await axios.post('/api/v1/webhooks/', formData)
+      await axiosInstance.post('/api/v1/webhooks/', formData)
       fetchData()
       setCreateDialogOpen(false)
       setFormData({
@@ -123,7 +132,7 @@ function WebhookManagementDashboard() {
   const handleUpdateWebhook = async (e) => {
     e.preventDefault()
     try {
-      await axios.put(`/api/v1/webhooks/${selectedWebhook.webhook_id}`, formData)
+      await axiosInstance.put(`/api/v1/webhooks/${selectedWebhook.webhook_id}`, formData)
       fetchData()
       setEditDialogOpen(false)
     } catch (err) {
@@ -135,7 +144,7 @@ function WebhookManagementDashboard() {
   const handleDeleteWebhook = async (webhookId) => {
     if (!confirm('Are you sure you want to delete this webhook?')) return
     try {
-      await axios.delete(`/api/v1/webhooks/${webhookId}`)
+      await axiosInstance.delete(`/api/v1/webhooks/${webhookId}`)
       fetchData()
     } catch (err) {
       console.error('Error deleting webhook:', err)
@@ -145,7 +154,7 @@ function WebhookManagementDashboard() {
 
   const handleToggleWebhook = async (webhook) => {
     try {
-      await axios.put(`/api/v1/webhooks/${webhook.webhook_id}`, {
+      await axiosInstance.put(`/api/v1/webhooks/${webhook.webhook_id}`, {
         active: !webhook.active
       })
       fetchData()
@@ -157,7 +166,7 @@ function WebhookManagementDashboard() {
 
   const handleTestWebhook = async (webhook) => {
     try {
-      const result = await axios.post(`/api/v1/webhooks/${webhook.webhook_id}/test`, {
+      const result = await axiosInstance.post(`/api/v1/webhooks/${webhook.webhook_id}/test`, {
         event: webhook.events[0] || 'asset.created',
         test_payload: null
       })
@@ -171,7 +180,7 @@ function WebhookManagementDashboard() {
   const handleViewDeliveries = async (webhook) => {
     setSelectedWebhook(webhook)
     try {
-      const response = await axios.get(`/api/v1/webhooks/${webhook.webhook_id}/deliveries`)
+      const response = await axiosInstance.get(`/api/v1/webhooks/${webhook.webhook_id}/deliveries`)
       setDeliveries(response.data)
       setDeliveriesDialogOpen(true)
     } catch (err) {
@@ -182,7 +191,7 @@ function WebhookManagementDashboard() {
 
   const handleViewSecret = async (webhook) => {
     try {
-      const response = await axios.get(`/api/v1/webhooks/${webhook.webhook_id}/secret`)
+      const response = await axiosInstance.get(`/api/v1/webhooks/${webhook.webhook_id}/secret`)
       setWebhookSecret(response.data.secret)
       setSecretDialogOpen(true)
     } catch (err) {

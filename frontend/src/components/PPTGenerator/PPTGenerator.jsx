@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import axios from 'axios'
+import axiosInstance from '../../utils/axiosInstance'
 import pptxgen from 'pptxgenjs'
 import {
   Box,
@@ -67,11 +67,11 @@ function PPTGenerator() {
   const fetchAllData = async () => {
     try {
       const [metricsRes, violationsRes, assetsRes, strategyRes, vendorRes] = await Promise.all([
-        axios.get('/api/v1/compliance/metrics'),
-        axios.get('/api/v1/compliance/violations'),
-        axios.get('/api/v1/assets/?limit=100'),
-        axios.get('/api/v1/strategy/dashboard'),
-        axios.get('/api/v1/vendors/dashboard'),
+        axiosInstance.get('/api/v1/compliance/metrics'),
+        axiosInstance.get('/api/v1/compliance/violations'),
+        axiosInstance.get('/api/v1/assets/?limit=100'),
+        axiosInstance.get('/api/v1/strategy/dashboard'),
+        axiosInstance.get('/api/v1/vendors/dashboard'),
       ])
 
       setData({
